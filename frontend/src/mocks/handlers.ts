@@ -25,23 +25,23 @@ export const handlers = [
   }),
 
   // Wallet
-  http.get(`${API}/wallet/balance`, async () => {
-    return HttpResponse.json({ balanceCents: 1230, lastUpdated: new Date().toISOString() })
-  }),
-  http.get(`${API}/wallet/history`, async ({ request }) => {
-    const url = new URL(request.url)
-    const page = Number(url.searchParams.get('page') || 1)
-    const pageSize = Number(url.searchParams.get('pageSize') || 20)
-    const total = 42
-    const items = Array.from({ length: pageSize }).map((_, i) => ({
-      id: `txn_${(page - 1) * pageSize + i + 1}`,
-      ts: new Date(Date.now() - i * 3600_000).toISOString(),
-      kind: 'return',
-      amountCents: 15,
-      note: '1 can @ €0.15',
-    }))
-    return HttpResponse.json({ items, total, page, pageSize })
-  }),
+  // http.get(`${API}/wallet/balance`, async () => {
+  //   return HttpResponse.json({ balanceCents: 1230, lastUpdated: new Date().toISOString() })
+  // }),
+  // http.get(`${API}/wallet/history`, async ({ request }) => {
+  //   const url = new URL(request.url)
+  //   const page = Number(url.searchParams.get('page') || 1)
+  //   const pageSize = Number(url.searchParams.get('pageSize') || 20)
+  //   const total = 42
+  //   const items = Array.from({ length: pageSize }).map((_, i) => ({
+  //     id: `txn_${(page - 1) * pageSize + i + 1}`,
+  //     ts: new Date(Date.now() - i * 3600_000).toISOString(),
+  //     kind: 'return',
+  //     amountCents: 15,
+  //     note: '1 can @ €0.15',
+  //   }))
+  //   return HttpResponse.json({ items, total, page, pageSize })
+  // }),
 
   // Simulator
   http.post(`${API}/simulate/return`, async () => {
