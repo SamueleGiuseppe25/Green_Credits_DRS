@@ -1,36 +1,32 @@
-# GreenCredits – Digital Bottle Return Platform
+# GreenCredits – Subscription Bottle Collection Platform
 
 ## Overview
-GreenCredits is a Python-based platform for Ireland’s Deposit Return Scheme (DRS).  
-It allows users to register, track credits from returned bottles, redeem or donate,  
-and view nearby return machines on an interactive map.
+GreenCredits is a subscription-based web platform that makes plastic bottle returns hassle-free.  
+Users pay a monthly fee to have their bottles collected weekly instead of returning them in person.  
+After each collection, our team redeems the bottles at the selected return point (e.g., Tesco, Lidl), and the voucher value is either credited to the user’s in-app wallet with proof attached, or donated on their behalf with a confirmation photo.
 
-The project starts **web-first**, supporting receipt image uploads and web camera scanning.  
-Later, it may extend with a **Kotlin mobile companion app** for native QR/receipt scanning.  
+This repository contains a FastAPI backend and a React frontend for the MVP. Payments (e.g., Stripe) and voucher scanning are simulated for development and demo purposes.
 
 ---
 
 ## Features
-- User registration & authentication (OAuth2/JWT).
-- Credits wallet with donation & redemption options.
-- Google Maps/Leaflet integration for return points.
-- Admin dashboard for analytics & claim moderation.
-- Machine simulator API to test bottle returns.
-- Receipt scanning workflow:
-  - Phase 1 → Upload image or scan with web camera.
-  - Phase 2 → Extend with Kotlin mobile app (Google ML Kit).
-- Secure QR/barcode system for redemptions.
-- Cloud deployment with monitoring & logs.
+- User registration & authentication (JWT).
+- Subscription management (activate/cancel) – simulated payment for MVP.
+- Weekly collection slot preference and bookings (collections).
+- Return points directory and selection per booking.
+- Wallet credits from redeemed vouchers, or donation confirmation with proof.
+- Admin: manage subscriptions, collections lifecycle, and return points.
+- Health checks and basic observability.
 
 ---
 
 ## Tech Stack
-- **Backend:** Python FastAPI, Celery, Redis  
-- **Frontend:** React + TailwindCSS, Leaflet/Google Maps  
-- **Databases:** PostgreSQL (core), MongoDB (logs)  
-- **Security:** OAuth2, JWT, RBAC, HTTPS  
-- **Deployment:** Docker, Railway/Azure  
-- **Observability:** Sentry, Prometheus + Grafana  
+- **Backend:** Python FastAPI  
+- **Frontend:** React (Vite) + TailwindCSS, Leaflet/OSM (or Google Maps)  
+- **Database:** PostgreSQL  
+- **Security:** OAuth2/JWT, RBAC, HTTPS  
+- **Deployment:** Docker + Docker Compose (dev), Railway/Azure (prod)  
+- **Observability:** Structured logs; optional Sentry/Prometheus (future)  
 
 ---
 
@@ -41,7 +37,7 @@ See also: `docs/SETUP.md` for a full step-by-step guide.
    git clone https://github.com/<your-org>/greencredits.git
    cd greencredits
    ```
-2. Backend – temporary SQLite dev mode (fast):
+2. Backend – temporary SQLite/Postgres dev mode:
    ```bash
    # Option A (Dev fast):
    # Leave DATABASE_URL empty and opt-in to sqlite dev
@@ -71,8 +67,6 @@ See also: `docs/SETUP.md` for a full step-by-step guide.
 
 - **frontend/** → React app (Vite + Tailwind)
 
-- **machine-simulator/** → Placeholder for simulated bottle returns (optional route in backend)
-
 - **docs/** → requirements.md, ADR-000, reports, diagrams
 
 ### Useful docs
@@ -98,7 +92,6 @@ See also: `docs/SETUP.md` for a full step-by-step guide.
 - api (FastAPI): Dockerfile at `backend/Dockerfile`
 - web (React + Nginx): Dockerfile at `frontend/Dockerfile`
 - postgres (managed)
-- redis (optional, managed)
 
 ### Required Variables (api)
 - DATABASE_URL
@@ -106,7 +99,6 @@ See also: `docs/SETUP.md` for a full step-by-step guide.
 - CORS_ORIGINS
 - MAPS_PROVIDER (osm or google)
 - GOOGLE_MAPS_API_KEY (only if using Google Maps)
-- REDIS_URL (if using Celery/Redis)
 
 ### Required Variables (web)
 - VITE_API_BASE_URL (e.g. https://api.greencredits.up.railway.app)
@@ -130,9 +122,16 @@ See also: `docs/SETUP.md` for a full step-by-step guide.
 - Backend: check DB/Redis connections.
 - Frontend: Nginx serves static build correctly.
 
+---
+
+## Scope Notes (MVP)
+- Payments (e.g., Stripe) and voucher scanning are OUT OF SCOPE for the MVP and are simulated.
+- Admin-only endpoints require JWT with `role=admin`.
+- Wallet balance is computed from transaction ledger.
+
 ## License
 MIT License
 
 ## Contributors
 - Student A – Backend, APIs, DB
-- Student B – Frontend, Maps, Mobile (optional)
+- Student B – Frontend, Maps
