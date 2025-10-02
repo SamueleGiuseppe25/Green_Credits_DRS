@@ -1,10 +1,16 @@
 from fastapi import APIRouter, HTTPException
-from sqlalchemy import text  # <-- IMPORTANT: wrap raw SQL with text()
-from app.services.db import engine, SessionLocal  # adjust import path if different
-from app.config import get_settings
+from sqlalchemy import text
+from ..services.db import engine, SessionLocal
+from ..config import get_settings
 
 router = APIRouter()
 settings = get_settings()
+
+
+@router.get("/health")
+async def health():
+    return {"status": "ok"}
+
 
 @router.get("/healthz")
 async def healthz():
