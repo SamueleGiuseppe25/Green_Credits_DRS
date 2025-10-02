@@ -4,7 +4,9 @@ info:
   version: 0.1.0
   description: >
     Minimal contract for parallel frontend/backend work.
-    Covers auth, wallet, machine simulator, receipt claims, return points and health checks.
+    Subscription-based bottle collection platform covering auth, subscriptions, collection slots,
+    collections (bookings), vouchers & wallet, return points, and health checks. Payments and voucher
+    scanning are simulated for MVP.
 
 servers:
   - url: https://api.greencredits.local
@@ -12,9 +14,12 @@ servers:
 
 tags:
   - name: Auth
+  - name: Subscriptions
+  - name: CollectionSlots
+  - name: Collections
   - name: Wallet
+  - name: Vouchers
   - name: Simulator
-  - name: Claims
   - name: ReturnPoints
   - name: Health
 
@@ -34,6 +39,72 @@ components:
       schema: { type: string, maxLength: 128 }
 
   schemas:
+    Subscription:
+      type: object
+      required: [status, planCode, startDate]
+      properties:
+        status:
+          type: string
+          enum: [active, inactive, canceled]
+        planCode:
+          type: string
+          example: monthly_basic
+        startDate:
+          type: string
+          format: date
+        endDate:
+          type: string
+          format: date
+
+    CollectionSlot:
+      type: object
+      required: [weekday, startTime, endTime]
+      properties:
+        weekday:
+          type: integer
+          minimum: 0
+          maximum: 6
+          example: 2
+        startTime:
+          type: string
+          example: "18:00:00"
+        endTime:
+          type: string
+          example: "20:00:00"
+        preferredReturnPointId:
+          type: string
+          nullable: true
+
+    Collection:
+      type: object
+      required: [id, userId, scheduledAt, returnPointId, status]
+      properties:
+        id: { type: string }
+        userId: { type: string }
+        scheduledAt: { type: string, format: date-time }
+        returnPointId: { type: string }
+        status:
+          type: string
+          enum: [scheduled, collected, processed, canceled]
+        bagCount: { type: integer, minimum: 1, default: 1 }
+        notes: { type: string, nullable: true }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+
+    Voucher:
+      type: object
+      required: [id, collectionId, amountCents]
+      properties:
+        id: { type: string }
+        collectionId: { type: string }
+        storeChain: { type: string, example: Tesco }
+        storeName: { type: string, example: "Tesco Rathmines" }
+        amountCents: { type: integer, example: 150 }
+        voucherCode: { type: string }
+        proofUrl: { type: string }
+        donated: { type: boolean, default: false }
+        processedAt: { type: string, format: date-time }
+        createdAt: { type: string, format: date-time }
     Error:
       type: object
       required: [code, message]
@@ -128,23 +199,6 @@ components:
         creditedCents: { type: integer, example: 75 }
         newBalanceCents: { type: integer, example: 1305 }
 
-    ClaimSubmitResponse:
-      type: object
-      required: [claimId, status, parsed]
-      properties:
-        claimId: { type: string, example: "clm_01H..." }
-        status:
-          type: string
-          enum: [Pending, Approved, Rejected]
-          example: Pending
-        parsed:
-          type: object
-          properties:
-            receiptId: { type: string, example: "366073070" }
-            retailer: { type: string, example: "SuperValu Dundrum" }
-            amountCents: { type: integer, example: 105 }
-            ts: { type: string, format: date-time, example: "2024-03-23T10:21:00Z" }
-          description: Parsed values are best-effort; subject to admin review.
 
     ReturnPoint:
       type: object
@@ -198,6 +252,176 @@ paths:
               schema: { $ref: "#/components/schemas/Error" }
 
   /auth/login:
+  /subscriptions/me:
+    get:
+      tags: [Subscriptions]
+      summary: Current subscription status for authenticated user
+      security: [ { bearerAuth: [] } ]
+      responses:
+        "200":
+          description: Ok
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Subscription" }
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+
+  /subscriptions/activate:
+    post:
+      tags: [Subscriptions]
+      summary: Activate monthly subscription (MVP: simulated payment)
+      security: [ { bearerAuth: [] } ]
+      responses:
+        "200":
+          description: Activated
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Subscription" }
+        "401": { description: Unauthorized }
+
+  /subscriptions/cancel:
+    post:
+      tags: [Subscriptions]
+      summary: Cancel active subscription
+      security: [ { bearerAuth: [] } ]
+      responses:
+        "200":
+          description: Canceled
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Subscription" }
+        "401": { description: Unauthorized }
+
+  /collection-slots/me:
+    get:
+      tags: [CollectionSlots]
+      summary: Get current user's weekly slot preference
+      security: [ { bearerAuth: [] } ]
+      responses:
+        "200":
+          description: Ok
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/CollectionSlot" }
+        "401": { description: Unauthorized }
+    put:
+      tags: [CollectionSlots]
+      summary: Upsert weekly slot preference
+      security: [ { bearerAuth: [] } ]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/CollectionSlot" }
+      responses:
+        "200": { description: Ok }
+        "201": { description: Created }
+        "401": { description: Unauthorized }
+
+  /collections:
+    post:
+      tags: [Collections]
+      summary: Create a new collection booking
+      security: [ { bearerAuth: [] } ]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [scheduledAt, returnPointId]
+              properties:
+                scheduledAt: { type: string, format: date-time }
+                returnPointId: { type: string }
+                bagCount: { type: integer, minimum: 1 }
+                notes: { type: string }
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Collection" }
+        "400": { description: Validation error }
+        "401": { description: Unauthorized }
+
+  /collections/me:
+    get:
+      tags: [Collections]
+      summary: List my collections
+      security: [ { bearerAuth: [] } ]
+      parameters:
+        - in: query
+          name: status
+          schema: { type: string, enum: [scheduled, collected, processed, canceled] }
+        - in: query
+          name: page
+          schema: { type: integer, minimum: 1, default: 1 }
+        - in: query
+          name: pageSize
+          schema: { type: integer, minimum: 1, maximum: 100, default: 20 }
+      responses:
+        "200": { description: Ok }
+        "401": { description: Unauthorized }
+
+  /collections/{id}:
+    get:
+      tags: [Collections]
+      summary: Get a collection by id
+      security: [ { bearerAuth: [] } ]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string }
+      responses:
+        "200": { description: Ok }
+        "401": { description: Unauthorized }
+        "404": { description: Not found }
+
+  /collections/{id}/cancel:
+    patch:
+      tags: [Collections]
+      summary: Cancel a scheduled collection
+      security: [ { bearerAuth: [] } ]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string }
+      responses:
+        "200": { description: Canceled }
+        "400": { description: Invalid state }
+        "401": { description: Unauthorized }
+        "404": { description: Not found }
+
+  /collections/{id}/status:
+    patch:
+      tags: [Collections]
+      summary: Admin transitions for collection status
+      security: [ { bearerAuth: [] } ]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                status:
+                  type: string
+                  enum: [scheduled, collected, processed, canceled]
+      responses:
+        "200": { description: Updated }
+        "400": { description: Invalid state }
+        "401": { description: Unauthorized }
+        "404": { description: Not found }
     post:
       tags: [Auth]
       summary: Login and receive tokens
@@ -288,41 +512,29 @@ paths:
             application/json:
               schema: { $ref: "#/components/schemas/Error" }
 
-  /claims/submit:
+  /vouchers:
     post:
-      tags: [Claims]
-      summary: Submit a receipt image to claim credit (web-first MVP)
+      tags: [Vouchers]
+      summary: Admin records voucher for a processed collection
       security: [ { bearerAuth: [] } ]
       requestBody:
         required: true
         content:
-          multipart/form-data:
+          application/json:
             schema:
               type: object
-              required: [image]
+              required: [collectionId, amountCents, storeChain]
               properties:
-                image:
-                  type: string
-                  format: binary
-                note:
-                  type: string
-                  maxLength: 200
+                collectionId: { type: string }
+                amountCents: { type: integer }
+                storeChain: { type: string }
+                voucherCode: { type: string }
+                proofUrl: { type: string }
+                donated: { type: boolean, default: false }
       responses:
-        "202":
-          description: Accepted for review
-          content:
-            application/json:
-              schema: { $ref: "#/components/schemas/ClaimSubmitResponse" }
-        "400":
-          description: Bad request
-          content:
-            application/json:
-              schema: { $ref: "#/components/schemas/Error" }
-        "401":
-          description: Unauthorized
-          content:
-            application/json:
-              schema: { $ref: "#/components/schemas/Error" }
+        "201": { description: Created }
+        "400": { description: Validation error }
+        "401": { description: Unauthorized }
 
   /return-points:
     get:
@@ -330,17 +542,15 @@ paths:
       summary: List return points (map)
       parameters:
         - in: query
-          name: bbox
-          description: >
-            Optional bounding box "minLng,minLat,maxLng,maxLat".
-            If omitted, returns top items by relevance/proximity (server-defined).
-          schema: { type: string, example: "-6.4,53.2,-6.1,53.4" }
+          name: chain
+          schema: { type: string }
         - in: query
-          name: type
-          schema: { type: string, enum: [RVM, Manual] }
+          name: q
+          schema: { type: string }
         - in: query
-          name: openNow
-          schema: { type: boolean }
+          name: near
+          description: lat,lng
+          schema: { type: string, example: "53.2889,-6.2410" }
         - in: query
           name: page
           schema: { type: integer, default: 1, minimum: 1 }
