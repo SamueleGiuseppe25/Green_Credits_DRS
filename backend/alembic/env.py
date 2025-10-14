@@ -24,7 +24,9 @@ config = context.config
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
-
+import app.models.return_point
+import app.models.user
+import app.models.subscriptions
 target_metadata = Base.metadata
 
 
@@ -44,7 +46,7 @@ def run_migrations_offline() -> None:
 def run_migrations_online() -> None:
     settings = get_settings()
     configuration = config.get_section(config.config_ini_section) or {}
-    configuration["sqlalchemy.url"] = settings.database_url.replace("+asyncpg", "")
+    configuration["sqlalchemy.url"] = settings.database_url.replace("+asyncpg", "").replace("+aiosqlite", "")
 
     connectable = engine_from_config(
         configuration,

@@ -1,7 +1,7 @@
 from sqlalchemy import Column, DateTime, Boolean, ForeignKey, func
 from sqlalchemy.dialects.postgresql import UUID
 import uuid
-from app.db import Base
+from app.services.db import Base
 
 class UserSubscription(Base):
     __tablename__ = "subscriptions"
