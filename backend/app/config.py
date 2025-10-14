@@ -1,7 +1,7 @@
 from functools import lru_cache
+from typing import List
+from pydantic import Field, AnyHttpUrl
 from pydantic_settings import BaseSettings
-from pydantic import Field
-
 
 class Settings(BaseSettings):
     app_name: str = "GreenCredits API (MVP)"
@@ -17,15 +17,13 @@ class Settings(BaseSettings):
     )
 
     secret_key: str = Field(default="dev-secret", description="JWT signing secret")
+    cors_origins: List[AnyHttpUrl] = Field(default=[])
 
     class Config:
         env_file = ".env"
         env_file_encoding = "utf-8"
         case_sensitive = False
 
-
 @lru_cache(maxsize=1)
 def get_settings() -> Settings:
     return Settings()
-
-

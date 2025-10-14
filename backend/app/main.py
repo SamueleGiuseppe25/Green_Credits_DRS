@@ -1,5 +1,11 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from app.routers import subscriptions
+from fastapi import FastAPI
+
+app = FastAPI()
+app.include_router(subscriptions.router)
+
 
 from .routers import auth, wallet, claims, return_points, simulate, healthz
 
