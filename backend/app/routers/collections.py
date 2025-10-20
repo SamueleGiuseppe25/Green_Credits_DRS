@@ -2,10 +2,20 @@ from datetime import datetime
 
 from fastapi import APIRouter, Depends, Query, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
+from pydantic import BaseModel
+from typing import Optional
 
 from ..dependencies.auth import CurrentUserDep
 from ..services.db import get_db_session
 from ..services.collections import create as svc_create, list_me as svc_list_me, cancel as svc_cancel
+
+
+
+class CreateCollectionRequest(BaseModel):
+    scheduledAt: str
+    returnPointId: int
+    bagCount: Optional[int] = 1
+    notes: Optional[str] = None
 
 
 router = APIRouter()
@@ -14,17 +24,17 @@ router = APIRouter()
 @router.post("", status_code=201)
 async def create_collection(
     current_user: CurrentUserDep,
-    payload: dict,
+    payload: CreateCollectionRequest,
     session: AsyncSession = Depends(get_db_session),
 ):
-    scheduled_at = datetime.fromisoformat(payload["scheduledAt"])  # assume ISO from client
+    scheduled_at = datetime.fromisoformat(payload.scheduledAt)  # assume ISO from client
     created = await svc_create(
         session,
         current_user.id,
         scheduled_at,
-        int(payload["returnPointId"]),
-        int(payload.get("bagCount", 1)),
-        payload.get("notes"),
+        payload.returnPointId,
+        payload.bagCount,
+        payload.notes,
     )
     return {
         "id": created.id,
