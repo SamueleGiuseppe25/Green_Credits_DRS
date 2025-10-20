@@ -5,6 +5,7 @@ import { createBrowserRouter, RouterProvider } from 'react-router-dom'
 import { routes } from './routes'
 import './index.css'
 import { worker } from './mocks/browser'
+import { AuthProvider } from './context/AuthContext'
 
 if (import.meta.env.DEV) {
   worker.start({ onUnhandledRequest: 'bypass' })
@@ -16,7 +17,9 @@ const queryClient = new QueryClient()
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <QueryClientProvider client={queryClient}>
-      <RouterProvider router={router} />
+      <AuthProvider>
+        <RouterProvider router={router} />
+      </AuthProvider>
     </QueryClientProvider>
   </React.StrictMode>
 )
