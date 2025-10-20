@@ -20,7 +20,7 @@ class Voucher(Base):
     donated: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
 
     processed_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
-    created_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, default=datetime.utcnow)
+    created_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, default=lambda: datetime.utcnow())
 
 
 
