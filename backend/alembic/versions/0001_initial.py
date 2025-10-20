@@ -26,7 +26,6 @@ def upgrade() -> None:
         sa.Column("full_name", sa.String(length=255), nullable=True),
         sa.Column("password_hash", sa.String(length=255), nullable=False),
     )
-    op.create_index("ix_users_email", "users", ["email"], unique=True)
 
     op.create_table(
         "return_points",
@@ -39,7 +38,6 @@ def upgrade() -> None:
         sa.Column("lat", sa.Float(), nullable=False),
         sa.Column("lng", sa.Float(), nullable=False),
     )
-    op.create_index("ix_return_points_external_id", "return_points", ["external_id"], unique=False)
 
 
 def downgrade() -> None:
