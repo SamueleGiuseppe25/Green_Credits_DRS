@@ -26,7 +26,7 @@ services:
     build:
       context: ./backend
     environment:
-      USE_SQLITE_DEV: "false"  # stringa esplicita
+      USE_SQLITE_DEV: "false"  # explicit string
       DATABASE_URL: postgresql+asyncpg://gc:gc@db:5432/greencredits
       DATABASE_URL_SYNC: postgresql+psycopg://gc:gc@db:5432/greencredits
       SECRET_KEY: dev-secret
