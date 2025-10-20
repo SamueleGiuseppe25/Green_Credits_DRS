@@ -26,7 +26,7 @@ if resolved_database_url and resolved_database_url.startswith("postgresql://"):
     # Example: "postgresql://..."  ->  "postgresql+asyncpg://..."
     resolved_database_url = resolved_database_url.replace("postgresql://", "postgresql+asyncpg://", 1)
 
-# (Opzionale) Se usassi rete pubblica, puoi aggiungere sslmode=require qui:
+# Optional: If using public network, you can add sslmode=require here:
 # if resolved_database_url and "proxy.rlwy.net" in resolved_database_url and "sslmode=" not in resolved_database_url:
 #     resolved_database_url += ("&" if "?" in resolved_database_url else "?") + "sslmode=require"
 
