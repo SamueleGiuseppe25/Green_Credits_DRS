@@ -30,7 +30,7 @@ services:
       DATABASE_URL: postgresql+asyncpg://gc:gc@db:5432/greencredits
       DATABASE_URL_SYNC: postgresql+psycopg://gc:gc@db:5432/greencredits
       SECRET_KEY: dev-secret
-      SEED_ON_START: "false"    # SOLO al primo avvio; poi metti "false"
+      SEED_ON_START: "false"    # ONLY on first start; then set to "false"
     depends_on:
       db:
         condition: service_healthy
