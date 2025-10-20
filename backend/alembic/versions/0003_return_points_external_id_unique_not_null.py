@@ -41,12 +41,12 @@ def upgrade() -> None:
         op.execute(
             """
             DELETE FROM return_points
-            WHERE rowid NOT IN (
-              SELECT MIN(rowid) FROM return_points
-              WHERE external_id IS NOT NULL
-              GROUP BY external_id
-            )
-            AND external_id IS NOT NULL
+            WHERE external_id IS NOT NULL
+              AND NOT EXISTS (
+                SELECT 1 FROM return_points rp2
+                WHERE rp2.external_id = return_points.external_id
+                  AND rp2.rowid < return_points.rowid
+              )
             """
         )
     # Alter to NOT NULL
