@@ -1,13 +1,16 @@
 from functools import lru_cache
-from pydantic_settings import BaseSettings, SettingsConfigDict
+
 from pydantic import Field
+from pydantic_settings import BaseSettings, SettingsConfigDict
+
 
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",
+        env_ignore_empty=True,
         case_sensitive=False,
-        extra="ignore",  # <-- tolerate unrelated env vars (DEBUG, PORT, etc.)
+        extra="ignore",  # tolerate unrelated env vars (DEBUG, PORT, etc.)
     )
 
     app_name: str = "GreenCredits API (MVP)"
@@ -22,6 +25,10 @@ class Settings(BaseSettings):
         description="Opt-in dev-only SQLite fallback when DATABASE_URL is not set.",
     )
 
+    # Runtime
+    debug: bool = Field(default=False)
+    port: int = Field(default=8000)
+
     # JWT / Auth
     secret_key: str = Field(default="dev-secret", description="JWT signing secret")
     jwt_algorithm: str = Field(default="HS256")
@@ -34,6 +41,7 @@ class Settings(BaseSettings):
             "If true, /auth/login accepts any email/password and /auth/me returns a fixed user for dev"
         ),
     )
+
 
 @lru_cache(maxsize=1)
 def get_settings() -> Settings:
