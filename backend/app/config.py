@@ -1,5 +1,5 @@
 from functools import lru_cache
-from pydantic_settings import BaseSettings
+from pydantic_settings import BaseSettings, SettingsConfigDict
 from pydantic import Field
 
 
@@ -18,10 +18,16 @@ class Settings(BaseSettings):
 
     secret_key: str = Field(default="dev-secret", description="JWT signing secret")
 
-    class Config:
-        env_file = ".env"
-        env_file_encoding = "utf-8"
-        case_sensitive = False
+    debug: bool = Field(default=False)
+    port: int = Field(default=8000)
+
+    model_config = SettingsConfigDict(
+        env_file=".env",
+        env_file_encoding="utf-8",
+        env_ignore_empty=True,
+        extra="ignore",
+        case_sensitive=False,
+    )
 
 
 @lru_cache(maxsize=1)

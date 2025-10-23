@@ -62,6 +62,9 @@ See also: `docs/SETUP.md` for a full step-by-step guide.
 
 ---
 
+### Python version note
+We standardize on Python 3.12 for local development, CI, and Docker. Avoid Python 3.13 until `asyncpg` publishes compatible wheels.
+
 ## Architecture
 - **backend/** → FastAPI app, DB models, services, OpenAPI spec
 

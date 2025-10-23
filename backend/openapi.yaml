@@ -18,7 +18,7 @@ tags:
   - name: CollectionSlots
   - name: Collections
   - name: Wallet
-  - name: Vouchers
+  - name: Admin
   - name: Simulator
   - name: ReturnPoints
   - name: Health
@@ -72,17 +72,17 @@ components:
           type: string
           example: "20:00:00"
         preferredReturnPointId:
-          type: string
+          type: integer
           nullable: true
 
     Collection:
       type: object
       required: [id, userId, scheduledAt, returnPointId, status]
       properties:
-        id: { type: string }
-        userId: { type: string }
+        id: { type: integer }
+        userId: { type: integer }
         scheduledAt: { type: string, format: date-time }
-        returnPointId: { type: string }
+        returnPointId: { type: integer }
         status:
           type: string
           enum: [scheduled, collected, processed, canceled]
@@ -204,21 +204,13 @@ components:
       type: object
       required: [id, name, type, lat, lng]
       properties:
-        id: { type: string, example: "rp_001" }
+        id: { type: integer, example: 1 }
         name: { type: string, example: "SuperMart Dundrum RVM" }
         type: { type: string, enum: [RVM, Manual] }
         eircode: { type: string, example: "D14 XXXX" }
         retailer: { type: string, example: "SuperMart" }
         lat: { type: number, format: float, example: 53.2891 }
         lng: { type: number, format: float, example: -6.2387 }
-        hours:
-          type: object
-          additionalProperties: { type: string }
-          example: { mon_fri: "08:00-22:00", sat: "08:00-22:00", sun: "09:00-21:00" }
-        services:
-          type: array
-          items: { type: string, enum: [voucher, donation] }
-        lastVerifiedAt: { type: string, format: date-time }
 
     ReturnPointsResponse:
       type: object
@@ -234,6 +226,7 @@ paths:
     post:
       tags: [Auth]
       summary: Register a new user
+      security: []
       requestBody:
         required: true
         content:
@@ -244,7 +237,20 @@ paths:
           description: Created
           content:
             application/json:
-              schema: { $ref: "#/components/schemas/AuthTokenResponse" }
+              schema:
+                type: object
+                required: [accessToken, tokenType, expiresIn, user]
+                properties:
+                  accessToken: { type: string }
+                  tokenType: { type: string, example: Bearer }
+                  expiresIn: { type: integer, example: 3600 }
+                  user:
+                    type: object
+                    required: [id, email, role]
+                    properties:
+                      id: { type: integer }
+                      email: { type: string }
+                      role: { type: string, enum: [user, admin] }
         "400":
           description: Bad request
           content:
@@ -252,6 +258,35 @@ paths:
               schema: { $ref: "#/components/schemas/Error" }
 
   /auth/login:
+    post:
+      tags: [Auth]
+      summary: Login and receive tokens
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/AuthLoginRequest" }
+      responses:
+        "200":
+          description: Ok
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [accessToken, tokenType, expiresIn, user]
+                properties:
+                  accessToken: { type: string }
+                  tokenType: { type: string, example: Bearer }
+                  expiresIn: { type: integer, example: 3600 }
+                  user:
+                    type: object
+                    required: [id, email, role]
+                    properties:
+                      id: { type: integer }
+                      email: { type: string }
+                      role: { type: string, enum: [user, admin] }
+
   /subscriptions/me:
     get:
       tags: [Subscriptions]
@@ -366,21 +401,6 @@ paths:
         "200": { description: Ok }
         "401": { description: Unauthorized }
 
-  /collections/{id}:
-    get:
-      tags: [Collections]
-      summary: Get a collection by id
-      security: [ { bearerAuth: [] } ]
-      parameters:
-        - in: path
-          name: id
-          required: true
-          schema: { type: string }
-      responses:
-        "200": { description: Ok }
-        "401": { description: Unauthorized }
-        "404": { description: Not found }
-
   /collections/{id}/cancel:
     patch:
       tags: [Collections]
@@ -390,29 +410,39 @@ paths:
         - in: path
           name: id
           required: true
-          schema: { type: string }
+          schema: { type: integer }
       responses:
         "200": { description: Canceled }
         "400": { description: Invalid state }
         "401": { description: Unauthorized }
         "404": { description: Not found }
 
-  /collections/{id}/status:
+  /admin/ping:
+    get:
+      tags: [Admin]
+      summary: Admin liveness
+      security: [ { bearerAuth: [] } ]
+      responses:
+        "200": { description: Ok }
+        "403": { description: Forbidden }
+
+  /admin/collections/{id}/status:
     patch:
-      tags: [Collections]
-      summary: Admin transitions for collection status
+      tags: [Admin]
+      summary: Update collection status (admin)
       security: [ { bearerAuth: [] } ]
       parameters:
         - in: path
           name: id
           required: true
-          schema: { type: string }
+          schema: { type: integer }
       requestBody:
         required: true
         content:
           application/json:
             schema:
               type: object
+              required: [status]
               properties:
                 status:
                   type: string
@@ -421,26 +451,8 @@ paths:
         "200": { description: Updated }
         "400": { description: Invalid state }
         "401": { description: Unauthorized }
+        "403": { description: Forbidden }
         "404": { description: Not found }
-    post:
-      tags: [Auth]
-      summary: Login and receive tokens
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema: { $ref: "#/components/schemas/AuthLoginRequest" }
-      responses:
-        "200":
-          description: Ok
-          content:
-            application/json:
-              schema: { $ref: "#/components/schemas/AuthTokenResponse" }
-        "401":
-          description: Invalid credentials
-          content:
-            application/json:
-              schema: { $ref: "#/components/schemas/Error" }
 
   /wallet/balance:
     get:
@@ -549,7 +561,7 @@ paths:
           schema: { type: string }
         - in: query
           name: near
-          description: lat,lng
+          description: lat,lng; sorts by distance if provided
           schema: { type: string, example: "53.2889,-6.2410" }
         - in: query
           name: page

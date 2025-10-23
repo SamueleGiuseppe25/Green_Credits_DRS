@@ -53,7 +53,7 @@ npm run dev
 ## Prerequisites
 - Docker Desktop (Windows/macOS) or Docker Engine (Linux)
 - Node.js v20+
-- Python 3.11+ (optional; for running local scripts like Alembic/seed outside the container)
+- Python 3.12 (standard across local, Docker, and CI)
 
 ## Clone the repository
 ```bash
@@ -90,8 +90,8 @@ VITE_API_BASE_URL=http://localhost:8000
 3. Apply migrations and seed demo data:
    ```bash
    cd backend
-   alembic upgrade head
-   python -m app.scripts.seed
+  alembic upgrade head
+  python -m app.scripts.seed
    ```
 4. Verify health and docs:
    - Health: `GET http://localhost:8000/healthz` → `{ status: "ok", db: "ok" }`
@@ -110,6 +110,44 @@ uvicorn app.main:app --reload --app-dir backend
 export USE_SQLITE_DEV=true
 unset DATABASE_URL
 uvicorn app.main:app --reload --app-dir backend
+
+---
+
+## Local development without Docker (Python 3.12)
+
+All local commands below assume Windows PowerShell; adapt paths for macOS/Linux accordingly.
+
+```powershell
+# From repo root
+cd backend
+
+# Create and activate a virtual environment with Python 3.12
+py -3.12 -m venv .venv
+./.venv/Scripts/Activate.ps1
+
+# Install backend dependencies
+pip install -r requirements.txt
+
+# Run the API (SQLite dev mode) on port 8000
+$env:USE_SQLITE_DEV = "true"
+python -m uvicorn app.main:app --reload --port 8000
+```
+
+### Alembic migrations
+```powershell
+# Docker
+docker compose exec backend alembic upgrade head
+
+# Local venv
+./.venv/Scripts/Activate.ps1
+alembic upgrade head
+```
+
+---
+
+## Standardized Python Version
+
+We standardize on Python 3.12 across local development, CI, and Docker. Avoid using Python 3.13 for now, as some dependencies (e.g., asyncpg) may not yet provide wheels.
 ```
 - Health: `GET /healthz` → `{ status: "ok", db: "ok" }`
 - To avoid SQLite, set `USE_SQLITE_DEV=false`. Then `/healthz` will return `{ db: "not_configured" }` until `DATABASE_URL` is set.

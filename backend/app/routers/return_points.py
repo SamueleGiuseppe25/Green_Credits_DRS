@@ -19,7 +19,15 @@ async def list_return_points_endpoint(
     pageSize: int = Query(default=100, ge=1, le=500),
     session: AsyncSession = Depends(get_db_session),
 ):
-    rows, total = await svc_list(session, chain, q, page, pageSize)
+    near_tuple = None
+    if near:
+        try:
+            lat_str, lng_str = near.split(",", 1)
+            near_tuple = (float(lat_str), float(lng_str))
+        except Exception:
+            near_tuple = None
+
+    rows, total = await svc_list(session, chain, q, page, pageSize, near_tuple)
     items = [
         ReturnPointSchema(
             id=r.id,
