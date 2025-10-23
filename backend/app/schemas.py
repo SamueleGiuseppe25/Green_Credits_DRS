@@ -12,9 +12,6 @@ class ReturnPoint(BaseModel):
     retailer: Optional[str] = None
     lat: float
     lng: float
-    hours: Optional[Dict[str, str]] = None
-    services: Optional[List[str]] = None
-    lastVerifiedAt: Optional[datetime] = None
 
 
 class ReturnPointsResponse(BaseModel):

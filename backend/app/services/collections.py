@@ -54,3 +54,28 @@ async def cancel(session: AsyncSession, user_id: int, id_: int) -> Collection | 
 
 
 
+ALLOWED_TRANSITIONS: dict[str, set[str]] = {
+    "scheduled": {"collected", "canceled"},
+    "collected": {"processed"},
+    "processed": set(),
+    "canceled": set(),
+}
+
+
+async def admin_transition_status(session: AsyncSession, id_: int, new_status: str) -> tuple[Collection | None, str | None]:
+    stmt = select(Collection).where(Collection.id == id_).limit(1)
+    col = (await session.execute(stmt)).scalars().first()
+    if col is None:
+        return None, None
+    current = col.status
+    if new_status not in {"scheduled", "collected", "processed", "canceled"}:
+        return col, "Invalid status"
+    allowed = ALLOWED_TRANSITIONS.get(current, set())
+    if new_status not in allowed:
+        return col, f"Invalid transition: {current} -> {new_status}"
+    col.status = new_status
+    await session.commit()
+    await session.refresh(col)
+    return col, None
+
+

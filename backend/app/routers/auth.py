@@ -9,7 +9,6 @@ from app.schemas import LoginRequest, TokenResponse, UserOut
 from app.services.db import get_db_session
 from app.models.user import User
 
-
 router = APIRouter()
 
 
@@ -17,6 +16,7 @@ router = APIRouter()
 async def login(payload: LoginRequest, db: AsyncSession = Depends(get_db_session)) -> TokenResponse:
     settings = get_settings()
 
+    # Dev-only shortcut if you still use it
     if settings.mock_auth:
         result = await db.execute(select(User).order_by(User.id.asc()).limit(1))
         user = result.scalar_one_or_none()
@@ -40,5 +40,3 @@ async def login(payload: LoginRequest, db: AsyncSession = Depends(get_db_session
 @router.get("/me", response_model=UserOut)
 async def me(user: User = Depends(get_current_user)) -> UserOut:
     return UserOut(id=user.id, email=user.email, full_name=user.full_name)
-
-
