@@ -3,6 +3,7 @@
 services:
   db:
     image: postgres:16
+    restart: always
     environment:
       POSTGRES_USER: gc
       POSTGRES_PASSWORD: gc
@@ -10,14 +11,15 @@ services:
     ports:
       - "5432:5432"
     volumes:
-      - pgdata:/var/lib/postgresql/data
+      - pg_data:/var/lib/postgresql/data
+
 
   backend:
     build:
       context: ./backend
     environment:
       USE_SQLITE_DEV: false
-      DATABASE_URL: postgresql+asyncpg://gc:gc@db:5432/greencredits
+      DATABASE_URL: postgresql+psycopg2://gc:gc@db:5432/greencredits
       SECRET_KEY: dev-secret
     depends_on:
       - db
@@ -25,6 +27,7 @@ services:
       - "8000:8000"
 
 volumes:
-  pgdata:
+  pg_data:
+
 
 

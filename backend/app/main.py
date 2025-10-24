@@ -1,13 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from app.routers import subscriptions
-from fastapi import FastAPI
-
-app = FastAPI()
-app.include_router(subscriptions.router)
-
-
-from .routers import auth, wallet, claims, return_points, simulate, healthz
+from .routers import auth, wallet, claims, return_points, simulate, healthz, subscriptions
 
 
 def create_app() -> FastAPI:
@@ -22,12 +15,14 @@ def create_app() -> FastAPI:
         allow_headers=["*"],
     )
 
+    # Include routers
     app.include_router(auth.router, prefix="/auth", tags=["Auth"])
     app.include_router(wallet.router, prefix="/wallet", tags=["Wallet"])
     app.include_router(claims.router, prefix="/claims", tags=["Claims"])
     app.include_router(return_points.router, prefix="/return-points", tags=["ReturnPoints"])
     app.include_router(simulate.router, prefix="/simulate", tags=["Simulator"])
-    app.include_router(healthz.router, tags=["Health"])  # /healthz
+    app.include_router(subscriptions.router, prefix="/subscriptions", tags=["Subscriptions"])
+    app.include_router(healthz.router, tags=["Health"])
 
     @app.get("/")
     async def root():
@@ -37,5 +32,3 @@ def create_app() -> FastAPI:
 
 
 app = create_app()
-
-

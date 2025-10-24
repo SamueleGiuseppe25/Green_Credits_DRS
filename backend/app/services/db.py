@@ -1,41 +1,38 @@
-from typing import AsyncGenerator
-
-from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine, async_sessionmaker
-from sqlalchemy.orm import DeclarativeBase
-
-from ..config import get_settings
+from typing import Generator
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker, DeclarativeBase
+from app.config import get_settings
 
 
+# --- Base class for models ---
 class Base(DeclarativeBase):
     pass
 
 
+# --- Load settings ---
 _settings = get_settings()
 
-resolved_database_url: str | None
+# --- Resolve database URL ---
 if _settings.database_url:
     resolved_database_url = _settings.database_url
 elif _settings.use_sqlite_dev:
-    resolved_database_url = "sqlite+aiosqlite:///./dev.db"
+    resolved_database_url = "sqlite:///./dev.db"
 else:
-    resolved_database_url = None
-
-engine = (
-    create_async_engine(resolved_database_url, echo=False, pool_pre_ping=True)
-    if resolved_database_url
-    else None
-)
-SessionLocal = (
-    async_sessionmaker(engine, expire_on_commit=False, class_=AsyncSession)
-    if engine is not None
-    else None
-)
+    raise RuntimeError("Database not configured. Set DATABASE_URL or USE_SQLITE_DEV=true.")
 
 
-async def get_db_session() -> AsyncGenerator[AsyncSession, None]:
-    if SessionLocal is None:
-        raise RuntimeError("Database not configured. Set DATABASE_URL or USE_SQLITE_DEV=true.")
-    async with SessionLocal() as session:
-        yield session
+# --- Create SYNC engine (psycopg2-compatible) ---
+engine = create_engine(resolved_database_url, echo=False, pool_pre_ping=True)
+
+# --- Session factory ---
+SessionLocal = sessionmaker(bind=engine, autocommit=False, autoflush=False)
 
 
+# --- Dependency for FastAPI routes ---
+def get_db() -> Generator:
+    """Yield a database session and ensure it closes properly."""
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()

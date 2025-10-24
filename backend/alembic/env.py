@@ -1,42 +1,47 @@
 from __future__ import annotations
 
-from logging.config import fileConfig
-import os
 import sys
+from logging.config import fileConfig
 from pathlib import Path
-from sqlalchemy import engine_from_config, pool
+
+from sqlalchemy import engine_from_config, pool, text
 from alembic import context
 
-# Ensure project root is on sys.path so `import app` works during alembic runs
+# --- Ensure we can import app modules ---
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.append(str(PROJECT_ROOT))
 
-from app.services.db import Base  # type: ignore  # noqa: E402
-from app.models import *  # type: ignore  # noqa: F401,F403,E402 - import models for metadata
-from app.config import get_settings  # type: ignore  # noqa: E402
+# --- Import settings and DB base ---
+from app.services.db import Base  # type: ignore
+from app.config import get_settings  # type: ignore
 
+# --- Import ALL models to register metadata ---
+import app.models.user  # type: ignore
+import app.models.wallet  # type: ignore
+import app.models.subscriptions  # type: ignore
+import app.models.transaction  # type: ignore
+import app.models.return_point  # type: ignore
 
-# this is the Alembic Config object, which provides
-# access to the values within the .ini file in use.
+# --- Alembic Config ---
 config = context.config
-
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
-import app.models.return_point
-import app.models.user
-import app.models.subscriptions
 target_metadata = Base.metadata
 
 
 def run_migrations_offline() -> None:
+    """Run migrations in 'offline' mode."""
     settings = get_settings()
+    url = settings.database_url
+
     context.configure(
-        url=settings.database_url,
+        url=url,
         target_metadata=target_metadata,
         literal_binds=True,
         dialect_opts={"paramstyle": "named"},
+        version_table_schema="public",
     )
 
     with context.begin_transaction():
@@ -44,9 +49,10 @@ def run_migrations_offline() -> None:
 
 
 def run_migrations_online() -> None:
+    """Run migrations in 'online' mode."""
     settings = get_settings()
     configuration = config.get_section(config.config_ini_section) or {}
-    configuration["sqlalchemy.url"] = settings.database_url.replace("+asyncpg", "").replace("+aiosqlite", "")
+    configuration["sqlalchemy.url"] = settings.database_url
 
     connectable = engine_from_config(
         configuration,
@@ -54,16 +60,23 @@ def run_migrations_online() -> None:
         poolclass=pool.NullPool,
     )
 
+    # --- Run migrations within an active connection ---
     with connectable.connect() as connection:
-        context.configure(connection=connection, target_metadata=target_metadata)
+        # Ensure Alembic and models use the 'public' schema
+        connection.execute(text("SET search_path TO public"))
+
+        context.configure(
+            connection=connection,
+            target_metadata=target_metadata,
+            version_table_schema="public"
+        )
 
         with context.begin_transaction():
             context.run_migrations()
 
 
+# --- Entry point ---
 if context.is_offline_mode():
     run_migrations_offline()
 else:
     run_migrations_online()
-
-

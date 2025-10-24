@@ -1,7 +1,7 @@
 from .user import User
-from .return_point import ReturnPoint
+from .wallet import Wallet
 from .subscriptions import UserSubscription
+from .return_point import ReturnPoint
+from .transaction import Transaction
 
-__all__ = ["User", "ReturnPoint", "UserSubscription"]
-
-
+__all__ = ["User", "Wallet", "UserSubscription", "ReturnPoint", "Transaction"]
