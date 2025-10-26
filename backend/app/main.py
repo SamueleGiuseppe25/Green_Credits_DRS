@@ -16,15 +16,18 @@ def create_app() -> FastAPI:
 
     # CORS for dev frontend and future host
     app.add_middleware(
-        CORSMiddleware,
-        allow_origins=[
-            "http://localhost:5173",  # Vite dev
-            "http://localhost:3000",  # Next.js dev
-            # "https://YOUR-PROD-FRONTEND-DOMAIN",  # add your production domain here
-        ],
-        allow_credentials=True,
-        allow_methods=["*"],
-        allow_headers=["*"],
+    CORSMiddleware,
+    allow_origins=[
+        "http://localhost:5173",
+        "http://localhost:5174",      # ← add this
+        "http://127.0.0.1:5173",      # ← optional
+        "http://127.0.0.1:5174",      # ← optional
+        "http://localhost:3000",      # Next.js dev (if you use it)
+    ],
+    allow_credentials=True,
+    allow_methods=["*"],              # includes OPTIONS
+    allow_headers=["*"],              # includes Authorization
+    expose_headers=["*"],             # optional, but fine
     )
 
     app.include_router(auth.router, prefix="/auth", tags=["Auth"])
