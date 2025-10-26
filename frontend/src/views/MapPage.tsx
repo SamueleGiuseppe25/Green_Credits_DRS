@@ -1,12 +1,12 @@
 import React from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { apiFetch } from '../lib/api'
+import { api } from '../lib/api'
 import { ReturnPointsResponse } from '../types/api'
 
 export const MapPage: React.FC = () => {
   const { data, isLoading } = useQuery({
     queryKey: ['return-points'],
-    queryFn: () => apiFetch<ReturnPointsResponse>('/return-points'),
+    queryFn: () => api<ReturnPointsResponse>('/return-points'),
   })
   return (
     <section>

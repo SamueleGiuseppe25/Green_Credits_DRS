@@ -1,16 +1,16 @@
 import React from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { apiFetch } from '../lib/api'
+import { api } from '../lib/api'
 import { WalletBalanceResponse, WalletHistoryResponse } from '../types/api'
 
 export const WalletPage: React.FC = () => {
   const balance = useQuery({
     queryKey: ['wallet','balance'],
-    queryFn: () => apiFetch<WalletBalanceResponse>('/wallet/balance'),
+    queryFn: () => api<WalletBalanceResponse>('/wallet/balance'),
   })
   const history = useQuery({
     queryKey: ['wallet','history'],
-    queryFn: () => apiFetch<WalletHistoryResponse>('/wallet/history?page=1&pageSize=5'),
+    queryFn: () => api<WalletHistoryResponse>('/wallet/history?page=1&pageSize=5'),
   })
 
   return (

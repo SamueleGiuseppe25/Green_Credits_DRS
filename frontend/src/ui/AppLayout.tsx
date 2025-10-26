@@ -1,5 +1,6 @@
 import React from 'react'
 import { Link, NavLink, Outlet } from 'react-router-dom'
+import { Header } from '../components/Header'
 
 export const AppLayout: React.FC = () => {
   return (
@@ -13,13 +14,11 @@ export const AppLayout: React.FC = () => {
           <NavItem to="/claims" label="Claims" />
           <NavItem to="/map" label="Map" />
           <NavItem to="/admin" label="Admin" />
+          <NavItem to="/subscription" label="Subscription" />
           <NavItem to="/login" label="Login" />
         </nav>
       </aside>
-      <header className="col-start-2 bg-white/70 dark:bg-gray-800/60 border-b border-gray-200 dark:border-gray-700 backdrop-blur flex items-center px-4">
-        <h1 className="text-lg font-semibold">GreenCredits</h1>
-        <div className="ml-auto text-sm opacity-70">MVP</div>
-      </header>
+      <Header />
       <main className="col-start-2 p-6">
         <Outlet />
       </main>

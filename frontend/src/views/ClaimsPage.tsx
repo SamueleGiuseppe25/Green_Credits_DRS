@@ -1,6 +1,6 @@
 import React from 'react'
 import { useMutation } from '@tanstack/react-query'
-import { apiForm } from '../lib/api'
+import { api } from '../lib/api'
 import { ClaimSubmitResponse } from '../types/api'
 
 export const ClaimsPage: React.FC = () => {
@@ -10,7 +10,7 @@ export const ClaimsPage: React.FC = () => {
       const form = new FormData()
       form.append('image', data.file)
       if (data.note) form.append('note', data.note)
-      return apiForm<ClaimSubmitResponse>('/claims/submit', form)
+      return api<ClaimSubmitResponse>('/claims/submit', { method: 'POST', body: form })
     },
   })
 

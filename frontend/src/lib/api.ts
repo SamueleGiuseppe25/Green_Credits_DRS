@@ -1,51 +1,40 @@
-import { getToken, logout } from './auth'
+// frontend/src/lib/api.ts
+const API_BASE =
+  import.meta.env.VITE_API_BASE ?? 'http://localhost:8000'
 
-export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'
+type ApiError = { status: number; message: string }
 
-function buildHeaders(init?: RequestInit): HeadersInit {
-  const headers: Record<string, string> = {
-    'Content-Type': 'application/json',
-    ...(init?.headers as Record<string, string> | undefined),
-  }
-  const token = getToken()
-  if (token) headers.Authorization = `Bearer ${token}`
-  return headers
+async function toApiError(res: Response): Promise<ApiError> {
+  let msg = res.statusText
+  try {
+    const body = await res.json()
+    msg = (body?.detail ?? body?.message ?? msg) as string
+  } catch {}
+  return { status: res.status, message: msg }
 }
 
-async function handleResponse<T>(res: Response): Promise<T> {
-  if (res.status === 401) {
-    // Token invalid/expired → log out and redirect to login
-    logout()
-    if (typeof window !== 'undefined') {
-      window.location.href = '/login'
-    }
-    throw new Error('Unauthorized')
-  }
-  if (!res.ok) {
-    const text = await res.text()
-    throw new Error(text || `Request failed: ${res.status}`)
-  }
-  return res.json() as Promise<T>
-}
+export async function api<T>(
+  path: string,
+  init: RequestInit = {}
+): Promise<T> {
+  const token =
+    localStorage.getItem('token') ||
+    localStorage.getItem('gc.token') ||
+    ''
 
-export async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
-  const res = await fetch(`${API_BASE_URL}${path}`, {
-    ...init,
-    headers: buildHeaders(init),
-  })
-  return handleResponse<T>(res)
-}
+  const headers = new Headers(init.headers)
+  // Only set JSON when not sending FormData
+  const isFormData = typeof FormData !== 'undefined' && init.body instanceof FormData
+  if (!headers.has('Content-Type') && !isFormData) headers.set('Content-Type', 'application/json')
+  if (token) headers.set('Authorization', token)
 
-export async function apiForm<T>(path: string, form: FormData, init?: RequestInit): Promise<T> {
-  const token = getToken()
-  const headers: Record<string, string> = {}
-  if (token) headers.Authorization = `Bearer ${token}`
-  const res = await fetch(`${API_BASE_URL}${path}`, {
-    method: 'POST',
-    body: form,
+  const res = await fetch(`${API_BASE}${path}`, {
     ...init,
     headers,
+    credentials: 'omit',
   })
-  return handleResponse<T>(res)
+
+  if (!res.ok) throw await toApiError(res)
+  return (res.status === 204 ? (undefined as unknown as T) : (await res.json())) as T
 }
 
