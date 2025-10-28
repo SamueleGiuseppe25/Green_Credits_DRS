@@ -39,6 +39,6 @@ async def login(payload: LoginRequest, db: AsyncSession = Depends(get_db_session
 
 @router.get("/me", response_model=UserOut)
 async def me(user: User = Depends(get_current_user)) -> UserOut:
-    return UserOut(id=user.id, email=user.email, full_name=getattr(user, "full_name", None))
+    return UserOut(id=user.id, email=user.email, full_name=user.full_name)
 
 
