@@ -69,3 +69,5 @@ class Collection(BaseModel):
 
 
 
+# --- Auth Schemas (for JWT endpoints) ---
+from .schemas.auth import LoginRequest, TokenResponse, UserOut
