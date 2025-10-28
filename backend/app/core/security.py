@@ -24,11 +24,11 @@ def create_access_token(subject: str | int, expires_minutes: Optional[int] = Non
         minutes=expires_minutes or settings.access_token_minutes
     )
     to_encode: dict[str, Any] = {"sub": str(subject), "exp": expire}
-    return jwt.encode(to_encode, settings.secret_key, algorithm=getattr(settings, "jwt_algorithm", "HS256"))
+    return jwt.encode(to_encode, settings.secret_key, algorithm=settings.jwt_algorithm)
 
 
 def decode_token(token: str) -> dict[str, Any]:
     settings = get_settings()
-    return jwt.decode(token, settings.secret_key, algorithms=[getattr(settings, "jwt_algorithm", "HS256")])
+    return jwt.decode(token, settings.secret_key, algorithms=[settings.jwt_algorithm])
 
 
