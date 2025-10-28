@@ -1,7 +1,7 @@
 from datetime import datetime, date, time
 from typing import Any, Dict, List, Optional
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, EmailStr, Field
 
 
 class ReturnPoint(BaseModel):
@@ -70,4 +70,17 @@ class Collection(BaseModel):
 
 
 # --- Auth Schemas (for JWT endpoints) ---
-from .schemas.auth import LoginRequest, TokenResponse, UserOut
+class LoginRequest(BaseModel):
+    email: EmailStr
+    password: str
+
+
+class TokenResponse(BaseModel):
+    access_token: str
+    token_type: str = "bearer"
+
+
+class UserOut(BaseModel):
+    id: int
+    email: EmailStr
+    full_name: Optional[str] = None
