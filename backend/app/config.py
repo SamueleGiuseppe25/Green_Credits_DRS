@@ -1,9 +1,15 @@
 from functools import lru_cache
-from pydantic_settings import BaseSettings
+from pydantic_settings import BaseSettings, SettingsConfigDict
 from pydantic import Field
 
-
 class Settings(BaseSettings):
+    model_config = SettingsConfigDict(
+        env_file=".env",
+        env_file_encoding="utf-8",
+        case_sensitive=False,
+        extra="ignore",  # <-- tolerate unrelated env vars (DEBUG, PORT, etc.)
+    )
+
     app_name: str = "GreenCredits API (MVP)"
     version: str = "0.1.0"
 
@@ -18,14 +24,6 @@ class Settings(BaseSettings):
 
     secret_key: str = Field(default="dev-secret", description="JWT signing secret")
 
-    class Config:
-        env_file = ".env"
-        env_file_encoding = "utf-8"
-        case_sensitive = False
-
-
 @lru_cache(maxsize=1)
 def get_settings() -> Settings:
     return Settings()
-
-
