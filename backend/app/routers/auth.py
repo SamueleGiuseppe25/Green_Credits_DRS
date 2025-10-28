@@ -17,7 +17,7 @@ router = APIRouter()
 async def login(payload: LoginRequest, db: AsyncSession = Depends(get_db_session)) -> TokenResponse:
     settings = get_settings()
 
-    if getattr(settings, "mock_auth", False):
+    if settings.mock_auth:
         result = await db.execute(select(User).order_by(User.id.asc()).limit(1))
         user = result.scalar_one_or_none()
         if not user:
