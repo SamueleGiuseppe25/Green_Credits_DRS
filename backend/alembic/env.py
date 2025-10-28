@@ -13,6 +13,9 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.append(str(PROJECT_ROOT))
 
+# Tell app code we are running under Alembic (avoid creating async engine)
+os.environ.setdefault("RUNNING_ALEMBIC", "1")
+
 from app.services.db import Base  # type: ignore  # noqa: E402
 from app.models import *  # type: ignore  # noqa: F401,F403,E402 - import models for metadata
 

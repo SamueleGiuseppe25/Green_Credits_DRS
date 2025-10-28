@@ -5,6 +5,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from .routers import auth, wallet, claims, return_points, simulate, healthz
 from .routers import subscriptions, collection_slots, collections
 from .services.db import engine
+from .config import get_settings
+from .routers import dev_utils
 
 
 logging.basicConfig(level=logging.INFO)
@@ -51,6 +53,11 @@ def create_app() -> FastAPI:
                 logger.info("Connected to DB")
             except Exception as exc:  # pragma: no cover - best-effort log
                 logger.warning("DB not reachable at startup: %s", exc)
+
+    # Optional dev utilities
+    settings = get_settings()
+    if getattr(settings, "mock_auth", False):
+        app.include_router(dev_utils.router)
 
     return app
 

@@ -12,6 +12,7 @@ class Base(DeclarativeBase):
 
 
 _settings = get_settings()
+_running_alembic = os.getenv("RUNNING_ALEMBIC") == "1"
 
 resolved_database_url: str | None
 if _settings.database_url:
@@ -32,12 +33,12 @@ if resolved_database_url and resolved_database_url.startswith("postgresql://"):
 
 engine = (
     create_async_engine(resolved_database_url, echo=False, pool_pre_ping=True)
-    if resolved_database_url
+    if (resolved_database_url and not _running_alembic)
     else None
 )
 SessionLocal = (
     async_sessionmaker(engine, expire_on_commit=False, class_=AsyncSession)
-    if engine is not None
+    if (engine is not None and not _running_alembic)
     else None
 )
 
