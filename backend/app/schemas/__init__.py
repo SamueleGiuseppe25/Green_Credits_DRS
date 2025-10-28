@@ -68,6 +68,19 @@ class Collection(BaseModel):
     updatedAt: datetime
 
 
-
 # --- Auth Schemas (for JWT endpoints) ---
-from .schemas.auth import LoginRequest, TokenResponse, UserOut
+from .auth import LoginRequest, TokenResponse, UserOut
+
+__all__ = [
+    "ReturnPoint",
+    "ReturnPointsResponse",
+    "WalletBalanceResponse",
+    "Transaction",
+    "WalletHistoryResponse",
+    "Subscription",
+    "CollectionSlot",
+    "Collection",
+    "LoginRequest",
+    "TokenResponse",
+    "UserOut",
+]
