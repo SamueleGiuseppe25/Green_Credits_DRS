@@ -56,7 +56,7 @@ def create_app() -> FastAPI:
 
     # Optional dev utilities
     settings = get_settings()
-    if getattr(settings, "mock_auth", False):
+    if settings.mock_auth:
         app.include_router(dev_utils.router)
 
     return app
