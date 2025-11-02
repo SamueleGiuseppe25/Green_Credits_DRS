@@ -3,6 +3,7 @@ from typing import Tuple, List
 
 from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
+from .vouchers import create_voucher_for_collection
 
 from ..models import Collection
 
@@ -51,6 +52,27 @@ async def cancel(session: AsyncSession, user_id: int, id_: int) -> Collection | 
     await session.commit()
     await session.refresh(col)
     return col
+async def mark_completed(session: AsyncSession, user_id: int, id_: int) -> Collection | None:
+    """Mark a collection as completed and issue a voucher + wallet credit."""
+    stmt = select(Collection).where(Collection.id == id_, Collection.user_id == user_id).limit(1)
+    col = (await session.execute(stmt)).scalars().first()
+    if col is None:
+        return None
 
+    col.status = "completed"
+    col.updated_at = datetime.utcnow()
+
+    # Create voucher and wallet credit
+    await create_voucher_for_collection(
+        session,
+        user_id=user_id,
+        collection_id=col.id,
+        amount_cents=50,  # later can be dynamic
+        store_chain="GreenCredits",
+    )
+
+    await session.commit()
+    await session.refresh(col)
+    return col
 
 

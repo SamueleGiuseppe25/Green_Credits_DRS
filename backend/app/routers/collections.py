@@ -8,6 +8,7 @@ from typing import Optional
 from ..dependencies.auth import CurrentUserDep
 from ..services.db import get_db_session
 from ..services.collections import create as svc_create, list_me as svc_list_me, cancel as svc_cancel
+from ..services.collections import mark_completed as svc_mark_completed
 
 
 
@@ -95,6 +96,15 @@ async def cancel_collection(
         "createdAt": col.created_at,
         "updatedAt": col.updated_at,
     }
-
+@router.post("/{id}/complete")
+async def complete_collection(
+    id: int,
+    current_user: CurrentUserDep,
+    session: AsyncSession = Depends(get_db_session),
+):
+    col = await svc_mark_completed(session, current_user.id, id)
+    if col is None:
+        raise HTTPException(status_code=404, detail="Collection not found")
+    return {"message": "Collection marked as completed", "collectionId": col.id}
 
 

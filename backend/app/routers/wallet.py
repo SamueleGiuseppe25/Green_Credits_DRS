@@ -6,7 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from ..services.db import get_db_session
 from ..dependencies.auth import CurrentUserDep
 from ..services.wallet import get_balance, get_history
-from ..schemas import WalletBalanceResponse, WalletHistoryResponse, Transaction
+from app.schemas.wallet import WalletBalanceResponse, WalletHistoryResponse, Transaction
 
 
 router = APIRouter()

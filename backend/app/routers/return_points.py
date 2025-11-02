@@ -4,7 +4,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..services.db import get_db_session
 from ..services.return_points import list_return_points as svc_list
-from ..schemas import ReturnPointsResponse, ReturnPoint as ReturnPointSchema
+from app.schemas.return_points import ReturnPointListResponse as ReturnPointsResponse, ReturnPoint as ReturnPointSchema
 
 
 router = APIRouter()

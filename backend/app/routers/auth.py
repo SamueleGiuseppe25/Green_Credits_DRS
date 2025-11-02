@@ -5,7 +5,7 @@ from sqlalchemy import select
 from app.config import get_settings
 from app.core.security import create_access_token, verify_password
 from app.dependencies.auth import get_current_user
-from app.schemas import LoginRequest, TokenResponse, UserOut
+from app.schemas.auth import LoginRequest, TokenResponse, UserOut
 from app.services.db import get_db_session
 from app.models.user import User
 

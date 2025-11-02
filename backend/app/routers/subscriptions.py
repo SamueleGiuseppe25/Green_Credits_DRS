@@ -4,8 +4,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from ..dependencies.auth import CurrentUserDep
 from ..services.db import get_db_session
 from ..services.subscriptions import get_me as svc_get_me, activate as svc_activate, cancel as svc_cancel
-from ..schemas import Subscription as SubscriptionSchema
-
+from app.schemas.subscriptions import SubscriptionStatusResponse as SubscriptionSchema
 
 router = APIRouter()
 

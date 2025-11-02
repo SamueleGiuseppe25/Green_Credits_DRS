@@ -4,8 +4,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from ..dependencies.auth import CurrentUserDep
 from ..services.db import get_db_session
 from ..services.collection_slots import get_me as svc_get_me, upsert as svc_upsert
-from ..schemas import CollectionSlot as CollectionSlotSchema
-
+from app.schemas.collection_slots import CollectionSlot as CollectionSlotSchema
 
 router = APIRouter()
 

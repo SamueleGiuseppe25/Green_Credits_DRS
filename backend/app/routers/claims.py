@@ -1,4 +1,5 @@
 from fastapi import APIRouter, UploadFile, File, Form
+from app.schemas.claims import ClaimSubmitRequest, ClaimResponse
 
 router = APIRouter()
 
