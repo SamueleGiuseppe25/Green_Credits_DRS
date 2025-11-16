@@ -67,7 +67,31 @@ class Collection(BaseModel):
     createdAt: datetime
     updatedAt: datetime
 
+class LoginRequest(BaseModel):
+    email: str
+    password: str
 
+
+class TokenResponse(BaseModel):
+    access_token: str
+    token_type: str = "bearer"
+
+
+class UserOut(BaseModel):
+    id: int
+    email: str
+    full_name: Optional[str] = None
+    is_active: Optional[bool] = True
 
 # --- Auth Schemas (for JWT endpoints) ---
-from .schemas.auth import LoginRequest, TokenResponse, UserOut
+#This line is commented out because the auth schemas are not used in the current implementation
+# from .schemas.auth import LoginRequest, TokenResponse, UserOut
+# if you need to use them, uncomment the line below
+# from .schemas.auth import LoginRequest, TokenResponse, UserOut
+
+
+
+
+
+
+
