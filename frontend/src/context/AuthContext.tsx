@@ -6,6 +6,7 @@ type AuthContextValue = {
   token: string | null
   loading: boolean
   error: string | null
+  isAuthenticated: boolean
   login: (email: string, password: string) => Promise<void>
   logout: () => void
   refreshUser: () => Promise<void>
@@ -23,8 +24,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       const u = await fetchUser()
       setUser(u)
-    } catch {
+      // If getUser returns null, token was invalid and already cleared by getUser()
+      if (!u) {
+        setToken(null)
+      }
+    } catch (error) {
+      // Handle errors gracefully - don't crash the app
+      console.error('Failed to refresh user:', error)
       setUser(null)
+      setToken(null)
     }
   }, [])
 
@@ -38,10 +46,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const login = useCallback(async (email: string, password: string) => {
     setError(null)
-    const { token: t } = await doLogin(email, password)
-    setToken(t)
-    writeToken(t)
-    await refreshUser()
+    try {
+      const { token: t } = await doLogin(email, password)
+      setToken(t)
+      writeToken(t)
+      await refreshUser()
+    } catch (err: any) {
+      // Set error message for display in login form
+      setError(err?.message || 'Login failed')
+      throw err // Re-throw so LoginPage can handle it
+    }
   }, [refreshUser])
 
   const logout = useCallback(() => {
@@ -50,7 +64,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setUser(null)
   }, [])
 
-  const value = useMemo<AuthContextValue>(() => ({ user, token, loading, error, login, logout, refreshUser }), [user, token, loading, error, login, logout, refreshUser])
+  const isAuthenticated = Boolean(token && user)
+
+  const value = useMemo<AuthContextValue>(
+    () => ({ user, token, loading, error, isAuthenticated, login, logout, refreshUser }),
+    [user, token, loading, error, isAuthenticated, login, logout, refreshUser]
+  )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
 }

@@ -1,9 +1,9 @@
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 
 export const LoginPage: React.FC = () => {
-  const { login } = useAuth()
+  const { login, isAuthenticated, loading } = useAuth()
   const navigate = useNavigate()
   const location = useLocation() as { state?: { from?: Location } }
   const [email, setEmail] = useState('')
@@ -11,13 +11,22 @@ export const LoginPage: React.FC = () => {
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
+  // Redirect if already authenticated
+  useEffect(() => {
+    if (!loading && isAuthenticated) {
+      const redirectTo = (location.state?.from as any)?.pathname || '/wallet'
+      navigate(redirectTo, { replace: true })
+    }
+  }, [isAuthenticated, loading, navigate, location])
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError(null)
     setSubmitting(true)
     try {
       await login(email, password)
-      const redirectTo = (location.state?.from as any)?.pathname || '/subscriptions'
+      // Redirect to the page user tried to access, or default to /wallet
+      const redirectTo = (location.state?.from as any)?.pathname || '/wallet'
       navigate(redirectTo, { replace: true })
     } catch (err: any) {
       setError(err?.message || 'Login failed')
