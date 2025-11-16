@@ -1,3 +1,4 @@
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import insert
 from datetime import datetime
@@ -5,34 +6,26 @@ from app.models.voucher import Voucher
 from app.models.wallet_transaction import WalletTransaction
 
 
-async def create_voucher_for_collection(
+async def update_voucher_proof_or_donation(
     session: AsyncSession,
     user_id: int,
-    collection_id: int,
-    amount_cents: int,
-    store_chain: str = "Generic",
-    store_name: str | None = None,
-):
-    """Create a voucher and a matching wallet transaction credit."""
-    voucher = Voucher(
-        collection_id=collection_id,
-        store_chain=store_chain,
-        store_name=store_name,
-        amount_cents=amount_cents,
-        voucher_code=f"VC-{collection_id}-{int(datetime.utcnow().timestamp())}",
-        donated=False,
-        created_at=datetime.utcnow(),
+    voucher_id: int,
+    proof_url: str | None,
+    donated: bool | None,
+) -> Voucher | None:
+    res = await session.execute(
+        select(Voucher).where(Voucher.id == voucher_id, Voucher.user_id == user_id).limit(1)
     )
-    session.add(voucher)
+    v = res.scalar_one_or_none()
+    if v is None:
+        return None
 
-    # Credit wallet immediately
-    wt = WalletTransaction(
-        user_id=user_id,
-        kind="credit",
-        amount_cents=amount_cents,
-        note=f"Voucher {voucher.voucher_code}",
-    )
-    session.add(wt)
+    if proof_url is not None:
+        v.proof_url = proof_url
+    if donated is not None:
+        v.donated = donated
 
-    await session.flush()   # get ids without commit
-    return voucher
+    v.updated_at = datetime.utcnow()
+    await session.commit()
+    await session.refresh(v)
+    return v

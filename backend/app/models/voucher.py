@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from sqlalchemy import String, DateTime, Integer, Boolean
+from sqlalchemy import ForeignKey, String, DateTime, Integer, Boolean
 from sqlalchemy.orm import Mapped, mapped_column
 
 from ..services.db import Base
@@ -10,7 +10,9 @@ class Voucher(Base):
     __tablename__ = "vouchers"
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False)
     collection_id: Mapped[int] = mapped_column(nullable=False, index=True)
+
 
     store_chain: Mapped[str] = mapped_column(String(64), nullable=False)
     store_name: Mapped[str | None] = mapped_column(String(128), nullable=True)

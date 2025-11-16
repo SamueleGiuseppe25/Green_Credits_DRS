@@ -6,3 +6,4 @@ from .subscriptions import *
 from .claims import *
 from .return_points import *
 from .simulate import *
+from .voucher import *
