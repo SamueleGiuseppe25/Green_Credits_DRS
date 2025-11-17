@@ -11,9 +11,9 @@ export interface WalletBalanceResponse {
 }
 
 export interface Transaction {
-  id: string
+  id: number
   ts: string
-  kind: 'return' | 'redeem' | 'donation' | 'adjustment'
+  kind: string
   amountCents: number
   note?: string
 }
@@ -37,9 +37,9 @@ export interface ClaimSubmitResponse {
 }
 
 export interface ReturnPoint {
-  id: string
+  id: number
   name: string
-  type: 'RVM' | 'Manual'
+  type: string
   eircode?: string
   retailer?: string
   lat: number
