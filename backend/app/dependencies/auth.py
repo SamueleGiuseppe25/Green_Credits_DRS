@@ -35,3 +35,16 @@ async def get_current_user(
 
 CurrentUserDep = Annotated[User, Depends(get_current_user)]
 
+def require_admin(user: CurrentUserDep) -> User:
+    """
+    Temporary admin gate.
+
+    For now, we treat any authenticated user as 'admin' for MVP.
+    Later you can change this to:
+
+        if not user.is_admin:
+            raise HTTPException(status_code=403, detail="Admin access required")
+
+    assuming your User model has an `is_admin` boolean field.
+    """
+    return user

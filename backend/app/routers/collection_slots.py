@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends, Body
+from fastapi import HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..dependencies.auth import CurrentUserDep
@@ -30,16 +31,20 @@ async def put_me(
     payload: CollectionSlotSchema,
     session: AsyncSession = Depends(get_db_session),
 ):
-    saved = await svc_upsert(
-        session,
-        current_user.id,
-        {
-            "weekday": payload.weekday,
-            "startTime": payload.startTime,
-            "endTime": payload.endTime,
-            "preferredReturnPointId": payload.preferredReturnPointId,
-        },
-    )
+    try:
+        saved = await svc_upsert(
+            session,
+            current_user.id,
+            {
+                "weekday": payload.weekday,
+                "startTime": payload.startTime,
+                "endTime": payload.endTime,
+                "preferredReturnPointId": payload.preferredReturnPointId,
+            },
+        )
+    except ValueError as e:
+        # Bad request with clear message; avoids 500 and preserves CORS
+        raise HTTPException(status_code=400, detail=str(e))
     return {
         "weekday": saved.weekday,
         "startTime": str(saved.start_time),

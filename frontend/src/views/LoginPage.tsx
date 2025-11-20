@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
+import toast from 'react-hot-toast'
 
 export const LoginPage: React.FC = () => {
   const { login, isAuthenticated, loading } = useAuth()
@@ -29,7 +30,9 @@ export const LoginPage: React.FC = () => {
       const redirectTo = (location.state?.from as any)?.pathname || '/wallet'
       navigate(redirectTo, { replace: true })
     } catch (err: any) {
-      setError(err?.message || 'Login failed')
+      const msg = err?.message || 'Login failed'
+      setError(msg)
+      toast.error(msg)
     } finally {
       setSubmitting(false)
     }
