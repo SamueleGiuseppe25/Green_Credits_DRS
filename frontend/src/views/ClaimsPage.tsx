@@ -16,7 +16,10 @@ export const ClaimsPage: React.FC = () => {
 
   return (
     <section>
-      <h1 className="text-2xl font-bold mb-4">Claims</h1>
+      <h1 className="text-2xl font-bold">Claims</h1>
+      <p className="text-sm opacity-70 mb-4">
+        If you think a collection is missing from your wallet, upload your receipt here and our team will review it.
+      </p>
       <form
         className="space-y-3"
         onSubmit={(e) => {

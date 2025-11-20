@@ -4,14 +4,14 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from pydantic import BaseModel
 
-from ..dependencies.auth import CurrentUser, require_admin  # note: import CurrentUser, not CurrentUserDep
+from ..dependencies.auth import CurrentUserDep, require_admin  # note: import CurrentUser, not CurrentUserDep
 from ..services.db import get_db_session
 from ..services.collections import admin_transition_status
 
 router = APIRouter()
 
 # Create an "admin-only" dependency alias
-AdminDep = Annotated[CurrentUser, Depends(require_admin)]
+AdminDep = Annotated[CurrentUserDep, Depends(require_admin)]
 
 @router.get("/ping")
 async def ping(_: AdminDep):

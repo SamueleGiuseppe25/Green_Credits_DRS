@@ -11,7 +11,10 @@ export const AdminPage: React.FC = () => {
   })
   return (
     <section>
-      <h1 className="text-2xl font-bold mb-4">Admin</h1>
+      <h1 className="text-2xl font-bold">Admin</h1>
+      <p className="text-sm opacity-70 mb-4">
+        Admin view for reviewing claims and payments. In a full system this area is restricted to staff.
+      </p>
       <table className="w-full text-left border">
         <thead>
           <tr className="bg-gray-100 dark:bg-gray-800">

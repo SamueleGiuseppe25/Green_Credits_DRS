@@ -18,7 +18,10 @@ export const WalletPage: React.FC = () => {
 
   return (
     <section>
-      <h1 className="text-2xl font-bold mb-4">Wallet</h1>
+      <h1 className="text-2xl font-bold">Wallet</h1>
+      <p className="text-sm opacity-70 mb-4">
+        Your GreenCredits balance from collected bottles and cans. Each completed collection adds credit here.
+      </p>
       <div className="space-y-4">
         <div>
           <h2 className="font-semibold">Balance</h2>

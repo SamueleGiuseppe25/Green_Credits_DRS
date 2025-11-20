@@ -15,7 +15,10 @@ export const MapPage: React.FC = () => {
 
   return (
     <section>
-      <h1 className="text-2xl font-bold mb-4">Map</h1>
+      <h1 className="text-2xl font-bold">Map</h1>
+      <p className="text-sm opacity-70 mb-4">
+        These are our partner return points. Collected bags are processed at these locations.
+      </p>
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         <div className="lg:col-span-2 border rounded-md p-2 h-[540px]">
           {isLoading && (

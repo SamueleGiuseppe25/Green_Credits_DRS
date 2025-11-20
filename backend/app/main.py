@@ -4,9 +4,10 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from .routers import auth, wallet, claims, return_points, simulate, healthz
 from .routers import subscriptions, collection_slots, collections, admin
-from .services.db import engine
+from .services.db import engine, SessionLocal
 from .config import get_settings
 from .routers import dev_utils
+from .services.seed import seed_demo_wallet_transactions
 
 
 logging.basicConfig(level=logging.INFO)
@@ -54,6 +55,15 @@ def create_app() -> FastAPI:
                 logger.info("Connected to DB")
             except Exception as exc:  # pragma: no cover - best-effort log
                 logger.warning("DB not reachable at startup: %s", exc)
+
+        # Seed demo data (best-effort; non-fatal on failure)
+        if SessionLocal is not None:
+            try:
+                async with SessionLocal() as session:
+                    await seed_demo_wallet_transactions(session)
+                logger.info("Demo wallet seed done")
+            except Exception as exc:  # pragma: no cover
+                logger.warning("Seed failed: %s", exc)
 
     # Optional dev utilities
     settings = get_settings()

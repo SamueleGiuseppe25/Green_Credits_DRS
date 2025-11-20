@@ -51,6 +51,47 @@ export interface ReturnPointsResponse {
   total: number
 }
 
+// Phase 3: Subscriptions & Collections
+export type SubscriptionStatus =
+  | 'active'
+  | 'paused'
+  | 'cancelled'
+  | 'inactive'
+  | (string & {}) // allow forward-compatible statuses
+
+export interface Subscription {
+  status: SubscriptionStatus
+  planCode: string | null
+  startDate: string | null // ISO date
+  endDate: string | null // ISO date or null
+}
+
+export interface CollectionSlot {
+  weekday: number // 0-6 (backend returns a single preferred weekly slot)
+  startTime: string // "HH:MM:SS" or "HH:MM"
+  endTime: string
+  preferredReturnPointId: number | null
+}
+
+export interface Collection {
+  id: number
+  userId: number
+  scheduledAt: string // ISO datetime
+  returnPointId: number
+  status: string
+  bagCount?: number
+  notes?: string | null
+  createdAt: string
+  updatedAt: string
+}
+
+export interface CollectionsResponse {
+  items: Collection[]
+  total: number
+  page: number
+  pageSize: number
+}
+
 export interface PendingClaimItem {
   claimId: string
   status: 'Pending'
