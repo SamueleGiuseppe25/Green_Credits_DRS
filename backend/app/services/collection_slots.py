@@ -1,9 +1,10 @@
 from datetime import time as time_cls
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select as sa_select
+from sqlalchemy import select as sa_select, and_
 
-from ..models import CollectionSlot, ReturnPoint
+from ..models import CollectionSlot, ReturnPoint, Collection
+from datetime import datetime, timedelta
 
 
 async def get_me(session: AsyncSession, user_id: int) -> CollectionSlot | None:
@@ -31,11 +32,24 @@ async def upsert(
     start_time = _parse_time(slot["startTime"])
     end_time = _parse_time(slot["endTime"])
     preferred_return_point_id = slot.get("preferredReturnPointId")
+    frequency = (slot.get("frequency") or "weekly").lower()
+    if frequency not in {"weekly", "fortnightly", "every_2_weeks", "monthly"}:
+        raise ValueError("Invalid frequency")
     if preferred_return_point_id is not None:
         # Validate that the return point exists
         rp = await session.scalar(sa_select(ReturnPoint.id).where(ReturnPoint.id == int(preferred_return_point_id)))
         if rp is None:
             raise ValueError("preferredReturnPointId does not reference an existing return point")
+
+    # Block enabling schedule if user has any upcoming one-off collection
+    now = datetime.utcnow()
+    upcoming = await session.scalar(
+        sa_select(sa_select(Collection.id).where(
+            and_(Collection.user_id == user_id, Collection.status != "canceled", Collection.scheduled_at >= now)
+        ).exists())
+    )
+    if upcoming:
+        raise ValueError("You already have a collection scheduled. Cancel it before enabling a recurring pickup.")
 
     current = await get_me(session, user_id)
     if current is None:
@@ -45,6 +59,7 @@ async def upsert(
             start_time=start_time,
             end_time=end_time,
             preferred_return_point_id=preferred_return_point_id,
+            frequency=frequency if frequency != "every_2_weeks" else "fortnightly",
         )
         session.add(current)
     else:
@@ -52,9 +67,17 @@ async def upsert(
         current.start_time = start_time
         current.end_time = end_time
         current.preferred_return_point_id = preferred_return_point_id
+        current.frequency = frequency if frequency != "every_2_weeks" else "fortnightly"
     await session.commit()
     await session.refresh(current)
     return current
 
+
+async def delete_me(session: AsyncSession, user_id: int) -> None:
+    current = await get_me(session, user_id)
+    if current is None:
+        return
+    await session.delete(current)
+    await session.commit()
 
 

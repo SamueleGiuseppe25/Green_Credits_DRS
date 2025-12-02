@@ -51,6 +51,10 @@ class CollectionSlot(BaseModel):
     startTime: str
     endTime: str
     preferredReturnPointId: Optional[int] = None
+    frequency: str = "weekly"
+
+class CollectionSlotOut(CollectionSlot):
+    enabled: bool
 
 
 class Collection(BaseModel):
@@ -79,6 +83,13 @@ class UserOut(BaseModel):
     email: str
     full_name: Optional[str] = None
     is_active: Optional[bool] = True
+    is_admin: Optional[bool] = False
+
+# Registration
+class RegisterRequest(BaseModel):
+    email: str
+    password: str
+    full_name: Optional[str] = None
 
 # --- Auth Schemas (for JWT endpoints) ---
 #This line is commented out because the auth schemas are not used in the current implementation

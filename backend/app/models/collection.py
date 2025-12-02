@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from sqlalchemy import String, DateTime, Integer
+from sqlalchemy import String, DateTime, Integer, Boolean, func
 from sqlalchemy.orm import Mapped, mapped_column
 
 from ..services.db import Base
@@ -19,8 +19,21 @@ class Collection(Base):
     bag_count: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
     notes: Mapped[str | None] = mapped_column(String(1024), nullable=True)
 
-    created_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, default=datetime.utcnow)
-    updated_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, default=datetime.utcnow)
+    is_archived: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False, server_default="0")
+
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime,
+        nullable=False,
+        server_default=func.now(),
+        default=lambda: datetime.utcnow(),
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime,
+        nullable=False,
+        server_default=func.now(),
+        default=lambda: datetime.utcnow(),
+        onupdate=lambda: datetime.utcnow(),
+    )
 
 
 

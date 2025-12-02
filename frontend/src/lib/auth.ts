@@ -9,6 +9,7 @@ export type AuthUser = {
   email: string
   full_name?: string | null
   is_active?: boolean | null
+  is_admin?: boolean | null
 } | null
 
 // Use gc_access_token as specified in requirements

@@ -43,4 +43,20 @@ async def cancel(session: AsyncSession, user_id: int) -> Subscription:
     return sub
 
 
+async def choose_plan(session: AsyncSession, user_id: int, plan_code: str) -> Subscription:
+    if plan_code not in {"weekly", "monthly", "yearly"}:
+        raise ValueError("Invalid plan code")
+    sub = await get_me(session, user_id)
+    if sub is None:
+        sub = Subscription(user_id=user_id, status="active", plan_code=plan_code, start_date=date.today())
+        session.add(sub)
+    else:
+        sub.plan_code = plan_code
+        sub.status = "active"
+        sub.start_date = sub.start_date or date.today()
+        sub.end_date = None
+    await session.commit()
+    await session.refresh(sub)
+    return sub
+
 

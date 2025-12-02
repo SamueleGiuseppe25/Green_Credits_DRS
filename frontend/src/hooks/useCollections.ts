@@ -63,5 +63,23 @@ export function useCancelCollection() {
   })
 }
 
+export function useDeleteCollection() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (id: number) =>
+      apiFetch<void>(`/collections/${id}`, {
+        method: 'DELETE',
+      }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['collections'] })
+      toast.success('Collection removed')
+    },
+    onError: (err: any) => {
+      const detail = err?.message ? `: ${err.message}` : ''
+      toast.error(`Could not remove collection${detail}`)
+    },
+  })
+}
+
 
 

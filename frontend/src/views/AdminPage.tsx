@@ -1,20 +1,27 @@
 import React from 'react'
 import { useQuery } from '@tanstack/react-query'
+import { apiFetch } from '../lib/api'
 
 export const AdminPage: React.FC = () => {
-  // Mock a pending claims list via MSW in future; for now, reuse /claims/submit shape
-  const { data } = useQuery({
-    queryKey: ['admin','pending'],
-    queryFn: async () => {
-      return [{ claimId: 'clm_01H', status: 'Pending', retailer: 'SuperValu', amountCents: 105, ts: new Date().toISOString() }]
-    },
+  const ping = useQuery({
+    queryKey: ['admin','ping'],
+    queryFn: () => apiFetch<{ status: string }>('/admin/ping'),
+    staleTime: 10_000,
   })
   return (
     <section>
       <h1 className="text-2xl font-bold">Admin</h1>
       <p className="text-sm opacity-70 mb-4">
-        Admin view for reviewing claims and payments. In a full system this area is restricted to staff.
+        Admin area is restricted to staff accounts.
       </p>
+      {ping.isSuccess && ping.data?.status === 'ok' && (
+        <div className="mb-4 text-sm rounded border px-3 py-2 bg-gray-50 dark:bg-gray-800/40">
+          Admin area – you are logged in as admin.
+        </div>
+      )}
+      {ping.isError && (
+        <div className="mb-4 text-sm text-red-600">Admin ping failed.</div>
+      )}
       <table className="w-full text-left border">
         <thead>
           <tr className="bg-gray-100 dark:bg-gray-800">
@@ -25,7 +32,7 @@ export const AdminPage: React.FC = () => {
           </tr>
         </thead>
         <tbody>
-          {data?.map((c) => (
+          {[{ claimId: 'clm_01H', status: 'Pending', retailer: 'SuperValu', amountCents: 105, ts: new Date().toISOString() }].map((c) => (
             <tr key={c.claimId} className="border-t">
               <td className="p-2">{c.claimId}</td>
               <td className="p-2">{c.status}</td>
