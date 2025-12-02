@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from 'react'
-import { useCollections, useCreateCollection, useCancelCollection } from '../hooks/useCollections'
+import { useCollections, useCreateCollection, useCancelCollection, useDeleteCollection } from '../hooks/useCollections'
+import { useMyCollectionSlots, useUpsertCollectionSlots, useDeleteCollectionSlot } from '../hooks/useSubscription'
 import { useReturnPoints } from '../hooks/useReturnPoints'
 
 export const CollectionsPage: React.FC = () => {
@@ -9,12 +10,21 @@ export const CollectionsPage: React.FC = () => {
   const { data: rpData } = useReturnPoints({ pageSize: 200 })
   const createMutation = useCreateCollection()
   const cancelMutation = useCancelCollection()
+  const deleteMutation = useDeleteCollection()
+  const slot = useMyCollectionSlots()
+  const upsertSlot = useUpsertCollectionSlots()
+  const deleteSlot = useDeleteCollectionSlot()
 
   const items = data?.items ?? []
   const total = data?.total ?? 0
   const totalPages = Math.max(1, Math.ceil(total / pageSize))
   const returnPoints = rpData?.items ?? []
   const rpById = useMemo(() => new Map(returnPoints.map(r => [r.id, r])), [returnPoints])
+  const slotEnabled = Boolean(slot.data?.enabled)
+  const now = useMemo(() => new Date(), [])
+  const hasUpcomingOneOff = useMemo(() => {
+    return (data?.items ?? []).some(c => c.status.toLowerCase() !== 'canceled' && new Date(c.scheduledAt) >= now)
+  }, [data, now])
 
   // Form state
   const [date, setDate] = useState('')
@@ -89,6 +99,20 @@ export const CollectionsPage: React.FC = () => {
                               Cancel
                             </button>
                           )}
+                          {c.status.toLowerCase() === 'canceled' && (
+                            <button
+                              className="text-xs px-2 py-1 rounded border hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-50"
+                              disabled={deleteMutation.isPending}
+                              onClick={async () => {
+                                if (window.confirm('Remove this canceled collection?')) {
+                                  await deleteMutation.mutateAsync(c.id)
+                                }
+                              }}
+                              title="Remove collection"
+                            >
+                              Remove
+                            </button>
+                          )}
                         </div>
                       </div>
                       <div className="opacity-70">
@@ -120,17 +144,22 @@ export const CollectionsPage: React.FC = () => {
           </div>
         </div>
 
-        <div className="border rounded-md p-4">
+        <div className={`border rounded-md p-4 ${slotEnabled ? 'opacity-60 pointer-events-none' : ''}`}>
           <div className="font-semibold mb-2">Create a collection</div>
+          {slotEnabled && (
+            <div className="text-xs mb-2 opacity-70">
+              You have a recurring pickup schedule enabled. Disable it to place a one-off collection.
+            </div>
+          )}
           <form className="space-y-3" onSubmit={handleCreate}>
             <div className="grid grid-cols-2 gap-2">
               <label className="text-sm opacity-70">Date</label>
-              <input type="date" className="border rounded px-2 py-1 bg-transparent" value={date} onChange={(e) => setDate(e.target.value)} />
+              <input type="date" className="border rounded px-2 py-1 bg-transparent dark:bg-gray-900 dark:text-gray-100" value={date} onChange={(e) => setDate(e.target.value)} />
               <label className="text-sm opacity-70">Time</label>
-              <input type="time" className="border rounded px-2 py-1 bg-transparent" value={time} onChange={(e) => setTime(e.target.value)} />
+              <input type="time" className="border rounded px-2 py-1 bg-transparent dark:bg-gray-900 dark:text-gray-100" value={time} onChange={(e) => setTime(e.target.value)} />
               <label className="text-sm opacity-70">Return point</label>
               <select
-                className="border rounded px-2 py-1 bg-transparent"
+                className="border rounded px-2 py-1 bg-transparent dark:bg-gray-900 dark:text-gray-100"
                 value={returnPointId}
                 onChange={(e) => setReturnPointId(e.target.value === '' ? '' : Number(e.target.value))}
               >
@@ -140,17 +169,17 @@ export const CollectionsPage: React.FC = () => {
                 ))}
               </select>
               <label className="text-sm opacity-70">Bags</label>
-              <input type="number" min={1} className="border rounded px-2 py-1 bg-transparent"
+              <input type="number" min={1} className="border rounded px-2 py-1 bg-transparent dark:bg-gray-900 dark:text-gray-100"
                 value={bagCount} onChange={(e) => setBagCount(Number(e.target.value))}
               />
               <label className="text-sm opacity-70">Notes</label>
-              <textarea className="border rounded px-2 py-1 bg-transparent" value={notes} onChange={(e) => setNotes(e.target.value)} />
+              <textarea className="border rounded px-2 py-1 bg-transparent dark:bg-gray-900 dark:text-gray-100" value={notes} onChange={(e) => setNotes(e.target.value)} />
             </div>
             <div>
               <button
                 type="submit"
                 className="text-sm px-3 py-1 rounded bg-emerald-600 text-white disabled:opacity-50"
-                disabled={createMutation.isPending || !scheduledAtISO || !returnPointId}
+                disabled={slotEnabled || createMutation.isPending || !scheduledAtISO || !returnPointId}
               >
                 {createMutation.isPending ? 'Creating…' : 'Create'}
               </button>
@@ -160,10 +189,132 @@ export const CollectionsPage: React.FC = () => {
             </div>
           </form>
         </div>
+
+        <div className="border rounded-md p-4">
+          <div className="font-semibold mb-2">Recurring pickup schedule</div>
+          {slotEnabled && slot.data && (
+            <div className="mb-3 text-sm border rounded px-3 py-2 bg-gray-50 dark:bg-gray-800/50 flex items-center justify-between">
+              <div>
+                {(() => {
+                  const freq = (slot.data?.frequency || 'weekly')
+                  const weekday = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][Number(slot.data?.weekday) || 0]
+                  const start = (slot.data?.startTime || '').slice(0,5)
+                  const end = (slot.data?.endTime || '').slice(0,5)
+                  const rp = slot.data?.preferredReturnPointId ? rpById.get(slot.data.preferredReturnPointId) : null
+                  return `Your recurring pickup: ${freq.charAt(0).toUpperCase()}${freq.slice(1)} • ${weekday} • ${start}–${end}` + (rp ? ` • ${rp.name}` : '')
+                })()}
+              </div>
+              <button
+                className="text-xs px-2 py-1 rounded border hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-50 ml-3"
+                disabled={deleteSlot.isPending}
+                onClick={async () => {
+                  if (window.confirm('Disable recurring pickup schedule?')) {
+                    await deleteSlot.mutateAsync()
+                  }
+                }}
+              >
+                {deleteSlot.isPending ? 'Disabling…' : 'Disable schedule'}
+              </button>
+            </div>
+          )}
+          {slot.isLoading && <div className="text-sm opacity-70">Loading schedule…</div>}
+          {slot.isError && <div className="text-sm text-red-600">Could not load schedule.</div>}
+          {!slot.isLoading && !slot.isError && (
+            <>
+              {!slotEnabled && hasUpcomingOneOff && (
+                <div className="text-xs mb-2 opacity-70">
+                  You already have a collection scheduled. Cancel it to enable recurring pickups.
+                </div>
+              )}
+            <RecurringScheduleForm
+              slot={slot.data || null}
+              returnPoints={returnPoints}
+              onSave={async (payload) => {
+                await upsertSlot.mutateAsync(payload as any)
+              }}
+            />
+            </>
+          )}
+        </div>
       </div>
     </section>
   )
 }
 
+const RecurringScheduleForm: React.FC<{
+  slot: { weekday: number; startTime: string; endTime: string; preferredReturnPointId: number | null; frequency: string } | null
+  returnPoints: { id: number; name: string }[]
+  onSave: (payload: {
+    weekday: number
+    startTime: string
+    endTime: string
+    preferredReturnPointId: number | null
+    frequency: 'weekly' | 'fortnightly' | 'every_2_weeks' | 'monthly'
+  }) => Promise<void>
+}> = ({ slot, returnPoints, onSave }) => {
+  const [weekday, setWeekday] = useState<number | ''>(slot?.weekday ?? '')
+  const [startTime, setStartTime] = useState<string>(slot ? slot.startTime.slice(0,5) : '')
+  const [endTime, setEndTime] = useState<string>(slot ? slot.endTime.slice(0,5) : '')
+  const [preferredId, setPreferredId] = useState<number | ''>(slot?.preferredReturnPointId ?? '')
+  const [frequency, setFrequency] = useState<'weekly' | 'fortnightly' | 'every_2_weeks' | 'monthly'>((slot?.frequency as any) ?? 'weekly')
+  const [saving, setSaving] = useState(false)
+  return (
+    <form
+      className="space-y-3"
+      onSubmit={async (e) => {
+        e.preventDefault()
+        if (weekday === '' || !startTime || !endTime) return
+        setSaving(true)
+        try {
+          await onSave({
+            weekday: Number(weekday),
+            startTime: startTime.length === 5 ? `${startTime}:00` : startTime,
+            endTime: endTime.length === 5 ? `${endTime}:00` : endTime,
+            preferredReturnPointId: preferredId === '' ? null : Number(preferredId),
+            frequency,
+          })
+        } finally {
+          setSaving(false)
+        }
+      }}
+    >
+      <div className="grid grid-cols-2 gap-2">
+        <label className="text-sm opacity-70">How often?</label>
+        <select className="border rounded px-2 py-1 bg-transparent dark:bg-gray-900 dark:text-gray-100" value={frequency} onChange={(e) => setFrequency(e.target.value as any)}>
+          <option value="weekly">Weekly</option>
+          <option value="fortnightly">Every 2 weeks</option>
+          <option value="monthly">Monthly</option>
+        </select>
+        <label className="text-sm opacity-70">Weekday</label>
+        <select className="border rounded px-2 py-1 bg-transparent dark:bg-gray-900 dark:text-gray-100" value={weekday} onChange={(e) => setWeekday(e.target.value === '' ? '' : Number(e.target.value))}>
+          <option value="">—</option>
+          <option value={0}>Sun</option>
+          <option value={1}>Mon</option>
+          <option value={2}>Tue</option>
+          <option value={3}>Wed</option>
+          <option value={4}>Thu</option>
+          <option value={5}>Fri</option>
+          <option value={6}>Sat</option>
+        </select>
+        <label className="text-sm opacity-70">Start time</label>
+        <input type="time" className="border rounded px-2 py-1 bg-transparent dark:bg-gray-900 dark:text-gray-100" value={startTime} onChange={(e) => setStartTime(e.target.value)} />
+        <label className="text-sm opacity-70">End time</label>
+        <input type="time" className="border rounded px-2 py-1 bg-transparent dark:bg-gray-900 dark:text-gray-100" value={endTime} onChange={(e) => setEndTime(e.target.value)} />
+        <label className="text-sm opacity-70">Preferred return point</label>
+        <select className="border rounded px-2 py-1 bg-transparent dark:bg-gray-900 dark:text-gray-100" value={preferredId} onChange={(e) => setPreferredId(e.target.value === '' ? '' : Number(e.target.value))}>
+          <option value="">—</option>
+          {returnPoints.map((rp) => (
+            <option key={rp.id} value={rp.id}>{rp.name}</option>
+          ))}
+        </select>
+      </div>
+      <div>
+        <button className="text-sm px-3 py-1 rounded bg-emerald-600 text-white disabled:opacity-50" disabled={saving} type="submit">
+          {saving ? 'Saving…' : 'Save schedule'}
+        </button>
+      </div>
+    </form>
+  )
+}
 
 

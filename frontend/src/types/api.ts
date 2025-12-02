@@ -71,6 +71,8 @@ export interface CollectionSlot {
   startTime: string // "HH:MM:SS" or "HH:MM"
   endTime: string
   preferredReturnPointId: number | null
+  frequency: 'weekly' | 'fortnightly' | 'every_2_weeks' | 'monthly'
+  enabled?: boolean
 }
 
 export interface Collection {

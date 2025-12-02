@@ -3,7 +3,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from .routers import auth, wallet, claims, return_points, simulate, healthz
-from .routers import subscriptions, collection_slots, collections, admin
+from .routers import subscriptions, collection_slots, collections, admin, users
 from .services.db import engine, SessionLocal
 from .config import get_settings
 from .routers import dev_utils
@@ -40,6 +40,7 @@ def create_app() -> FastAPI:
     app.include_router(simulate.router, prefix="/simulate", tags=["Simulator"])
     app.include_router(healthz.router, tags=["Health"])  # /health and /healthz
     app.include_router(admin.router, prefix="/admin", tags=["Admin"])  # admin-only
+    app.include_router(users.router, prefix="/users", tags=["Users"])
 
     @app.get("/")
     async def root():

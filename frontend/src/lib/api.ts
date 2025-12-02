@@ -22,9 +22,47 @@ async function handleResponse<T>(res: Response): Promise<T> {
     throw new Error('Unauthorized')
   }
   if (!res.ok) {
-    const text = await res.text()
-    throw new Error(text || `Request failed: ${res.status}`)
+    // Best-effort extract message, but read body ONCE to avoid stream reuse errors
+    let bodyText = ''
+    try {
+      bodyText = await res.text()
+    } catch {
+      // ignore
+    }
+    let message = ''
+    if (bodyText) {
+      try {
+        const j = JSON.parse(bodyText)
+        message = (j && (j.detail || j.message)) || ''
+      } catch {
+        message = bodyText
+      }
+    }
+    throw new Error(message || `Request failed: ${res.status}`)
   }
+
+  // 204 No Content → resolve undefined
+  if (res.status === 204) {
+    return undefined as unknown as T
+  }
+
+  // If not JSON or empty body, avoid parsing error
+  const contentLength = res.headers.get('content-length')
+  const contentType = res.headers.get('content-type') || ''
+  if (contentLength === '0' || (!contentType.includes('application/json'))) {
+    try {
+      const text = await res.text()
+      if (!text) return undefined as unknown as T
+      try {
+        return JSON.parse(text) as T
+      } catch {
+        return undefined as unknown as T
+      }
+    } catch {
+      return undefined as unknown as T
+    }
+  }
+
   return res.json() as Promise<T>
 }
 

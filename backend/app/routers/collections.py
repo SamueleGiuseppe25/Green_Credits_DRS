@@ -7,7 +7,7 @@ from typing import Optional
 
 from ..dependencies.auth import CurrentUserDep
 from ..services.db import get_db_session
-from ..services.collections import create as svc_create, list_me as svc_list_me, cancel as svc_cancel
+from ..services.collections import create as svc_create, list_me as svc_list_me, cancel as svc_cancel, delete_canceled as svc_delete_canceled
 
 
 
@@ -28,14 +28,17 @@ async def create_collection(
     session: AsyncSession = Depends(get_db_session),
 ):
     scheduled_at = datetime.fromisoformat(payload.scheduledAt)  # assume ISO from client
-    created = await svc_create(
-        session,
-        current_user.id,
-        scheduled_at,
-        payload.returnPointId,
-        payload.bagCount,
-        payload.notes,
-    )
+    try:
+        created = await svc_create(
+            session,
+            current_user.id,
+            scheduled_at,
+            payload.returnPointId,
+            payload.bagCount,
+            payload.notes,
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
     return {
         "id": created.id,
         "userId": created.user_id,
@@ -96,5 +99,21 @@ async def cancel_collection(
         "updatedAt": col.updated_at,
     }
 
+
+@router.delete("/{id}", status_code=204)
+async def delete_collection(
+    id: int,
+    current_user: CurrentUserDep,
+    session: AsyncSession = Depends(get_db_session),
+):
+    ok, reason = await svc_delete_canceled(session, current_user.id, id)
+    if ok:
+        return
+    if reason == "not_found":
+        raise HTTPException(status_code=404, detail="Not found")
+    if reason == "not_canceled":
+        raise HTTPException(status_code=400, detail="Only canceled collections can be deleted")
+    # Fallback generic error
+    raise HTTPException(status_code=400, detail="Cannot delete collection")
 
 

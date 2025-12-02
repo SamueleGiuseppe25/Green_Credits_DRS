@@ -38,4 +38,41 @@ export function useUpsertCollectionSlots() {
   })
 }
 
+export function useDeleteCollectionSlot() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: () =>
+      apiFetch<void>('/collection-slots/me', {
+        method: 'DELETE',
+      }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['collection-slots', 'me'] })
+      toast.success('Recurring pickup schedule disabled')
+    },
+    onError: (err: any) => {
+      const detail = err?.message ? `: ${err.message}` : ''
+      toast.error(`Could not disable schedule${detail}`)
+    },
+  })
+}
+
+export function useChoosePlan() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (planCode: 'weekly' | 'monthly' | 'yearly') =>
+      apiFetch<Subscription>('/subscriptions/choose', {
+        method: 'POST',
+        body: JSON.stringify({ planCode }),
+      }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['subscription', 'me'] })
+      toast.success('Subscription activated')
+    },
+    onError: (err: any) => {
+      const detail = err?.message ? `: ${err.message}` : ''
+      toast.error(`Could not activate subscription${detail}`)
+    },
+  })
+}
+
 
