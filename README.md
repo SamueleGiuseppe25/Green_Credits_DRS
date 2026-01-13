@@ -133,5 +133,5 @@ See also: `docs/SETUP.md` for a full step-by-step guide.
 MIT License
 
 ## Contributors
-- Student A – Backend, APIs, DB
-- Student B – Frontend, Maps
+- Giuseppe Samuele Quaarato
+- Thomas Mateo Paredes 
