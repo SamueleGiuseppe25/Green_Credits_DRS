@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import toast from 'react-hot-toast'
+import { apiFetch } from '../lib/api'
 
 export const SignupPage: React.FC = () => {
   const { login, isAuthenticated, loading } = useAuth()
@@ -9,6 +10,7 @@ export const SignupPage: React.FC = () => {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [fullName, setFullName] = useState('')
+  const [planCode, setPlanCode] = useState<'weekly' | 'monthly' | 'yearly'>('weekly')
   const [submitting, setSubmitting] = useState(false)
 
   useEffect(() => {
@@ -21,18 +23,28 @@ export const SignupPage: React.FC = () => {
     e.preventDefault()
     setSubmitting(true)
     try {
-      const res = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'}/auth/register`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password, full_name: fullName || null }),
-      })
-      if (!res.ok) {
-        const msg = (await res.text()) || 'Registration failed'
-        throw new Error(msg)
+      const normalizedEmail = email.trim().toLowerCase()
+      if (!normalizedEmail) {
+        toast.error('Email is required')
+        return
       }
+      await apiFetch('/auth/register', {
+        method: 'POST',
+        body: JSON.stringify({ email: normalizedEmail, password, full_name: fullName || null }),
+      })
       // Auto-login after successful signup
-      await login(email, password)
-      navigate('/settings', { replace: true })
+      await login(normalizedEmail, password)
+      try {
+        await apiFetch('/subscriptions/choose', {
+          method: 'POST',
+          body: JSON.stringify({ planCode }),
+        })
+      } catch (err: any) {
+        toast.error(err?.message || 'Could not activate subscription')
+        navigate('/settings', { replace: true })
+        return
+      }
+      navigate('/wallet', { replace: true })
       toast.success('Welcome to GreenCredits!')
     } catch (err: any) {
       toast.error(err?.message || 'Registration failed')
@@ -74,6 +86,18 @@ export const SignupPage: React.FC = () => {
             minLength={6}
             required
           />
+        </div>
+        <div>
+          <label className="block text-sm mb-1">Plan</label>
+          <select
+            className="w-full border rounded px-3 py-2 bg-transparent dark:bg-gray-900 dark:text-gray-100"
+            value={planCode}
+            onChange={(e) => setPlanCode(e.target.value as 'weekly' | 'monthly' | 'yearly')}
+          >
+            <option value="weekly">Weekly — 1 pickup/week</option>
+            <option value="monthly">Monthly</option>
+            <option value="yearly">Yearly</option>
+          </select>
         </div>
         <button
           type="submit"

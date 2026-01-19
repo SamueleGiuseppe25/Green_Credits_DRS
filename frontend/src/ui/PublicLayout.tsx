@@ -1,5 +1,6 @@
 import React from 'react'
 import { Outlet, Link } from 'react-router-dom'
+import { Toaster } from 'react-hot-toast'
 
 export const PublicLayout: React.FC = () => {
   return (
@@ -15,6 +16,7 @@ export const PublicLayout: React.FC = () => {
       </header>
       <main className="flex-1">
         <div className="max-w-3xl mx-auto p-6">
+          <Toaster position="top-right" toastOptions={{ style: { background: '#111827', color: 'white' } }} />
           <Outlet />
         </div>
       </main>

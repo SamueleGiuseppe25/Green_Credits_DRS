@@ -2,6 +2,31 @@ import React, { useMemo, useState } from 'react'
 import { useCollections, useCreateCollection, useCancelCollection, useDeleteCollection } from '../hooks/useCollections'
 import { useMyCollectionSlots, useUpsertCollectionSlots, useDeleteCollectionSlot } from '../hooks/useSubscription'
 import { useReturnPoints } from '../hooks/useReturnPoints'
+import toast from 'react-hot-toast'
+
+const SERVICE_START_MINUTES = 8 * 60
+const SERVICE_END_MINUTES = 20 * 60
+
+function timeToMinutes(value: string): number | null {
+  if (!value) return null
+  const [h, m] = value.split(':').map((n) => Number(n))
+  if (Number.isNaN(h) || Number.isNaN(m)) return null
+  return h * 60 + m
+}
+
+function isWithinServiceHours(value: string): boolean {
+  const minutes = timeToMinutes(value)
+  if (minutes === null) return false
+  return minutes >= SERVICE_START_MINUTES && minutes <= SERVICE_END_MINUTES
+}
+
+function formatTodayInputValue() {
+  const now = new Date()
+  const yyyy = now.getFullYear()
+  const mm = String(now.getMonth() + 1).padStart(2, '0')
+  const dd = String(now.getDate()).padStart(2, '0')
+  return `${yyyy}-${mm}-${dd}`
+}
 
 export const CollectionsPage: React.FC = () => {
   const [page, setPage] = useState(1)
@@ -32,6 +57,7 @@ export const CollectionsPage: React.FC = () => {
   const [returnPointId, setReturnPointId] = useState<number | ''>('')
   const [bagCount, setBagCount] = useState<number>(1)
   const [notes, setNotes] = useState<string>('')
+  const minDate = formatTodayInputValue()
 
   const scheduledAtISO = useMemo(() => {
     if (!date || !time) return ''
@@ -41,6 +67,15 @@ export const CollectionsPage: React.FC = () => {
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!scheduledAtISO || !returnPointId) return
+    const scheduledDate = new Date(scheduledAtISO)
+    if (Number.isNaN(scheduledDate.getTime()) || scheduledDate < new Date()) {
+      toast.error('Date must be today or later.')
+      return
+    }
+    if (!isWithinServiceHours(time)) {
+      toast.error('You can only book collections between 08:00 and 20:00.')
+      return
+    }
     await createMutation.mutateAsync({
       scheduledAt: scheduledAtISO,
       returnPointId: Number(returnPointId),
@@ -154,9 +189,9 @@ export const CollectionsPage: React.FC = () => {
           <form className="space-y-3" onSubmit={handleCreate}>
             <div className="grid grid-cols-2 gap-2">
               <label className="text-sm opacity-70">Date</label>
-              <input type="date" className="border rounded px-2 py-1 bg-transparent dark:bg-gray-900 dark:text-gray-100" value={date} onChange={(e) => setDate(e.target.value)} />
+              <input type="date" min={minDate} className="border rounded px-2 py-1 bg-transparent dark:bg-gray-900 dark:text-gray-100" value={date} onChange={(e) => setDate(e.target.value)} />
               <label className="text-sm opacity-70">Time</label>
-              <input type="time" className="border rounded px-2 py-1 bg-transparent dark:bg-gray-900 dark:text-gray-100" value={time} onChange={(e) => setTime(e.target.value)} />
+              <input type="time" min="08:00" max="20:00" className="border rounded px-2 py-1 bg-transparent dark:bg-gray-900 dark:text-gray-100" value={time} onChange={(e) => setTime(e.target.value)} />
               <label className="text-sm opacity-70">Return point</label>
               <select
                 className="border rounded px-2 py-1 bg-transparent dark:bg-gray-900 dark:text-gray-100"
@@ -183,9 +218,6 @@ export const CollectionsPage: React.FC = () => {
               >
                 {createMutation.isPending ? 'Creating…' : 'Create'}
               </button>
-              {createMutation.isError && (
-                <div className="text-xs text-red-600 mt-1">Could not create collection.</div>
-              )}
             </div>
           </form>
         </div>
@@ -264,6 +296,10 @@ const RecurringScheduleForm: React.FC<{
       onSubmit={async (e) => {
         e.preventDefault()
         if (weekday === '' || !startTime || !endTime) return
+        if (!isWithinServiceHours(startTime) || !isWithinServiceHours(endTime)) {
+          toast.error('You can only book collections between 08:00 and 20:00.')
+          return
+        }
         setSaving(true)
         try {
           await onSave({
@@ -297,9 +333,9 @@ const RecurringScheduleForm: React.FC<{
           <option value={6}>Sat</option>
         </select>
         <label className="text-sm opacity-70">Start time</label>
-        <input type="time" className="border rounded px-2 py-1 bg-transparent dark:bg-gray-900 dark:text-gray-100" value={startTime} onChange={(e) => setStartTime(e.target.value)} />
+        <input type="time" min="08:00" max="20:00" className="border rounded px-2 py-1 bg-transparent dark:bg-gray-900 dark:text-gray-100" value={startTime} onChange={(e) => setStartTime(e.target.value)} />
         <label className="text-sm opacity-70">End time</label>
-        <input type="time" className="border rounded px-2 py-1 bg-transparent dark:bg-gray-900 dark:text-gray-100" value={endTime} onChange={(e) => setEndTime(e.target.value)} />
+        <input type="time" min="08:00" max="20:00" className="border rounded px-2 py-1 bg-transparent dark:bg-gray-900 dark:text-gray-100" value={endTime} onChange={(e) => setEndTime(e.target.value)} />
         <label className="text-sm opacity-70">Preferred return point</label>
         <select className="border rounded px-2 py-1 bg-transparent dark:bg-gray-900 dark:text-gray-100" value={preferredId} onChange={(e) => setPreferredId(e.target.value === '' ? '' : Number(e.target.value))}>
           <option value="">—</option>

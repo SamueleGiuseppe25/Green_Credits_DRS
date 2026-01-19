@@ -59,9 +59,9 @@ export async function login(email: string, password: string): Promise<{ token: s
     throw new Error(errorMessage)
   }
 
-  const data = (await res.json()) as LoginResponse
-  // Backend returns access_token (snake_case)
-  const token = data.access_token
+  const data = (await res.json()) as LoginResponse & { accessToken?: string }
+  // Backend returns access_token (snake_case); mocks may return accessToken
+  const token = data.access_token || data.accessToken
   if (!token) throw new Error('Invalid auth response: missing access_token')
   setToken(token)
   return { token, raw: data }

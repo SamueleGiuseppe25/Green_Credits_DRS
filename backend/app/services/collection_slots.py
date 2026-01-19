@@ -4,7 +4,15 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select as sa_select, and_
 
 from ..models import CollectionSlot, ReturnPoint, Collection
-from datetime import datetime, timedelta
+from datetime import datetime
+
+SERVICE_START = time_cls(8, 0)
+SERVICE_END = time_cls(20, 0)
+
+
+def _validate_service_time(value: time_cls) -> None:
+    if value < SERVICE_START or value > SERVICE_END:
+        raise ValueError("You can only book collections between 08:00 and 20:00.")
 
 
 async def get_me(session: AsyncSession, user_id: int) -> CollectionSlot | None:
@@ -31,6 +39,8 @@ async def upsert(
 
     start_time = _parse_time(slot["startTime"])
     end_time = _parse_time(slot["endTime"])
+    _validate_service_time(start_time)
+    _validate_service_time(end_time)
     preferred_return_point_id = slot.get("preferredReturnPointId")
     frequency = (slot.get("frequency") or "weekly").lower()
     if frequency not in {"weekly", "fortnightly", "every_2_weeks", "monthly"}:

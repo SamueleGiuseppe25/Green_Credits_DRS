@@ -1,11 +1,22 @@
-from datetime import datetime
+from datetime import datetime, timedelta, time as time_cls
 from typing import Tuple, List
 
-from sqlalchemy import select, func, and_, between
+from sqlalchemy import select, func, and_
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..models import Collection, CollectionSlot
-from datetime import datetime, timedelta
+
+SERVICE_START = time_cls(8, 0)
+SERVICE_END = time_cls(20, 0)
+
+
+def _validate_scheduled_at(scheduled_at: datetime) -> None:
+    now = datetime.utcnow()
+    if scheduled_at < now:
+        raise ValueError("Date must be today or later.")
+    scheduled_time = scheduled_at.time()
+    if scheduled_time < SERVICE_START or scheduled_time > SERVICE_END:
+        raise ValueError("You can only book collections between 08:00 and 20:00.")
 
 
 async def create(
@@ -16,6 +27,7 @@ async def create(
     bag_count: int | None,
     notes: str | None,
 ) -> Collection:
+    _validate_scheduled_at(scheduled_at)
     # Block if user has an active recurring slot
     has_slot = await session.scalar(select(select(CollectionSlot.id).where(CollectionSlot.user_id == user_id).exists()))
     if has_slot:
