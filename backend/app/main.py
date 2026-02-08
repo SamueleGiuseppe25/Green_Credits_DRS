@@ -4,6 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from .routers import auth, wallet, claims, return_points, simulate, healthz
 from .routers import subscriptions, collection_slots, collections, admin, users
+from .routers import payments, stripe_webhooks
 from .services.db import engine, SessionLocal
 from .config import get_settings
 from .routers import dev_utils
@@ -39,7 +40,9 @@ def create_app() -> FastAPI:
     app.include_router(return_points.router, prefix="/return-points", tags=["ReturnPoints"])
     app.include_router(simulate.router, prefix="/simulate", tags=["Simulator"])
     app.include_router(healthz.router, tags=["Health"])  # /health and /healthz
-    app.include_router(admin.router, prefix="/admin", tags=["Admin"])  # admin-only
+    app.include_router(admin.router)  # admin-only
+    app.include_router(payments.router)
+    app.include_router(stripe_webhooks.router)
     app.include_router(users.router, prefix="/users", tags=["Users"])
 
     @app.get("/")
@@ -75,5 +78,10 @@ def create_app() -> FastAPI:
 
 
 app = create_app()
+
+settings = get_settings()
+logger.info("Stripe secret present? %s", bool(getattr(settings, "stripe_secret_key", None)))
+logger.info("Raw env STRIPE_SECRET_KEY present? %s", bool(__import__("os").environ.get("STRIPE_SECRET_KEY")))
+
 
 

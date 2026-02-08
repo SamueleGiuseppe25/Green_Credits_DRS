@@ -4,11 +4,11 @@ import { useChoosePlan, useMySubscription } from '../hooks/useSubscription'
 import toast from 'react-hot-toast'
 import { apiFetch } from '../lib/api'
 import { useNavigate } from 'react-router-dom'
+import { createCheckoutSession } from '../lib/paymentsApi'
 
 export const SettingsPage: React.FC = () => {
   const { user, logout, refreshUser } = useAuth()
   const sub = useMySubscription()
-  const choosePlan = useChoosePlan()
   const navigate = useNavigate()
   const [name, setName] = useState<string>(user?.full_name || '')
   const [saving, setSaving] = useState(false)
@@ -82,10 +82,16 @@ export const SettingsPage: React.FC = () => {
               <div className="pt-2 flex gap-2">
                 <button
                   className="text-sm px-3 py-1 rounded border hover:bg-gray-100 dark:hover:bg-gray-700"
-                  onClick={() => {
-                    const next = window.prompt('Change plan to: weekly, monthly, yearly?','monthly')
+                  onClick={async () => {
+                    const next = window.prompt('Change plan to: weekly, monthly, yearly?', 'monthly')
                     if (!next) return
-                    choosePlan.mutate(next as any)
+                    const plan = next.trim().toLowerCase()
+                    if (plan !== 'weekly' && plan !== 'monthly' && plan !== 'yearly') {
+                      toast.error('Invalid plan. Choose weekly, monthly, or yearly.')
+                      return
+                    }
+                    const { url } = await createCheckoutSession(plan as any)
+                    window.location.href = url
                   }}
                 >
                   Change plan
@@ -115,8 +121,14 @@ export const SettingsPage: React.FC = () => {
                   <button
                     key={code}
                     className="border rounded px-3 py-3 hover:bg-gray-100 dark:hover:bg-gray-800"
-                    onClick={() => choosePlan.mutate(code)}
-                    disabled={choosePlan.isPending}
+                    onClick={async () => {
+                      try {
+                        const { url } = await createCheckoutSession(code)
+                        window.location.href = url
+                      } catch (e: any) {
+                        toast.error(e?.message || 'Could not start checkout')
+                      }
+                    }}
                   >
                     <div className="font-semibold capitalize">{code}</div>
                     <div className="text-xs opacity-70">{code === 'weekly' ? '1 pickup/week' : code === 'monthly' ? 'Monthly plan' : 'Yearly plan'}</div>

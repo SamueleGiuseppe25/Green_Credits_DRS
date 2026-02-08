@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import toast from 'react-hot-toast'
 import { apiFetch } from '../lib/api'
+import { createCheckoutSession } from '../lib/paymentsApi'
 
 export const SignupPage: React.FC = () => {
   const { login, isAuthenticated, loading } = useAuth()
@@ -34,18 +35,8 @@ export const SignupPage: React.FC = () => {
       })
       // Auto-login after successful signup
       await login(normalizedEmail, password)
-      try {
-        await apiFetch('/subscriptions/choose', {
-          method: 'POST',
-          body: JSON.stringify({ planCode }),
-        })
-      } catch (err: any) {
-        toast.error(err?.message || 'Could not activate subscription')
-        navigate('/settings', { replace: true })
-        return
-      }
-      navigate('/wallet', { replace: true })
-      toast.success('Welcome to GreenCredits!')
+      const { url } = await createCheckoutSession(planCode)
+      window.location.href = url
     } catch (err: any) {
       toast.error(err?.message || 'Registration failed')
     } finally {

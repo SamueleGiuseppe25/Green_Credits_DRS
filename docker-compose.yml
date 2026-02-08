@@ -25,12 +25,29 @@ services:
   backend:
     build:
       context: ./backend
+
+    # ✅ Load Stripe + other env vars into the container
+    # Choose ONE of these depending on where your .env file is:
+    #
+    # If your .env is at: Final_Project_3_Year/backend/.env (most likely)
+    env_file:
+      - ./backend/.env
+    #
+    # If your .env is at: Final_Project_3_Year/.env then use instead:
+    # env_file:
+    #   - ./.env
+
     environment:
       USE_SQLITE_DEV: "false"  # explicit string
+
+      # ✅ Override DB URLs for Docker network (db hostname)
       DATABASE_URL: postgresql+asyncpg://gc:gc@db:5432/greencredits
       DATABASE_URL_SYNC: postgresql+psycopg://gc:gc@db:5432/greencredits
+
+      # Keep your defaults (can also live in env_file)
       SECRET_KEY: dev-secret
-      SEED_ON_START: "false"    # ONLY on first start; then set to "false"
+      SEED_ON_START: "false"
+
     depends_on:
       db:
         condition: service_healthy

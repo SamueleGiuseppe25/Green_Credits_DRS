@@ -12,6 +12,8 @@ import { CollectionsPage } from './views/CollectionsPage'
 import { LandingPage } from './views/LandingPage'
 import { SignupPage } from './views/SignupPage'
 import { SettingsPage } from './views/SettingsPage'
+import { SubscribeSuccessPage } from './views/SubscribeSuccessPage'
+import { SubscribeCancelPage } from './views/SubscribeCancelPage'
 
 export const routes: RouteObject[] = [
   // Public routes (no sidebar)
@@ -22,6 +24,8 @@ export const routes: RouteObject[] = [
       { path: '/', element: <LandingPage /> },
       { path: '/login', element: <LoginPage /> },
       { path: '/signup', element: <SignupPage /> },
+      { path: '/subscribe/success', element: <SubscribeSuccessPage /> },
+      { path: '/subscribe/cancel', element: <SubscribeCancelPage /> },
     ],
   },
   // Private routes (with sidebar)
