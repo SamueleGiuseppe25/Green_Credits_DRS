@@ -1,12 +1,20 @@
 import React, { useState } from 'react'
-import { useWalletBalance, useWalletHistory } from '../hooks/useWallet'
+import {
+  useWalletBalance,
+  useWalletHistory,
+  useDonateVoucher,
+  useRedeemVoucher,
+} from '../hooks/useWallet'
 
 export const WalletPage: React.FC = () => {
   const [page, setPage] = useState(1)
   const [pageSize, setPageSize] = useState(10)
+  const [successProof, setSuccessProof] = useState<string | null>(null)
 
   const balance = useWalletBalance()
   const history = useWalletHistory(page, pageSize)
+  const donate = useDonateVoucher()
+  const redeem = useRedeemVoucher()
 
   const formatEuro = (cents: number) => (cents / 100).toFixed(2)
   const formatDateTime = (iso: string) => new Date(iso).toLocaleString()
@@ -16,11 +24,41 @@ export const WalletPage: React.FC = () => {
   const canPrev = page > 1
   const canNext = page < pageCount
 
+  const handleDonate = () => {
+    const raw = window.prompt('Amount to donate (euros)', '0')
+    if (raw == null) return
+    const euros = parseFloat(raw)
+    if (Number.isNaN(euros) || euros <= 0) {
+      window.alert('Please enter a positive amount in euros.')
+      return
+    }
+    setSuccessProof(null)
+    donate.mutate(Math.round(euros * 100), {
+      onSuccess: (data) => setSuccessProof(data.proofRef),
+      onError: (err) => window.alert(err instanceof Error ? err.message : 'Donate failed'),
+    })
+  }
+
+  const handleRedeem = () => {
+    const raw = window.prompt('Amount to redeem (euros)', '0')
+    if (raw == null) return
+    const euros = parseFloat(raw)
+    if (Number.isNaN(euros) || euros <= 0) {
+      window.alert('Please enter a positive amount in euros.')
+      return
+    }
+    setSuccessProof(null)
+    redeem.mutate(Math.round(euros * 100), {
+      onSuccess: (data) => setSuccessProof(data.proofRef),
+      onError: (err) => window.alert(err instanceof Error ? err.message : 'Redeem failed'),
+    })
+  }
+
   return (
     <section>
-      <h1 className="text-2xl font-bold">Wallet</h1>
+      <h1 className="text-2xl font-bold">Voucher Balance</h1>
       <p className="text-sm opacity-70 mb-4">
-        Your GreenCredits balance from collected bottles and cans. Each completed collection adds credit here.
+        Your GreenCredits voucher balance from collected bottles and cans. Each completed collection adds credit here.
       </p>
       <div className="space-y-4">
         <div>
@@ -35,11 +73,34 @@ export const WalletPage: React.FC = () => {
               <div className="text-xs opacity-60">
                 Last updated: {formatDateTime(balance.data.lastUpdated)}
               </div>
+              <div className="mt-2 flex gap-2">
+                <button
+                  type="button"
+                  className="px-3 py-1.5 rounded border bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 disabled:opacity-50"
+                  onClick={handleDonate}
+                  disabled={donate.isPending || (balance.data?.balanceCents ?? 0) <= 0}
+                >
+                  Donate
+                </button>
+                <button
+                  type="button"
+                  className="px-3 py-1.5 rounded border bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 disabled:opacity-50"
+                  onClick={handleRedeem}
+                  disabled={redeem.isPending || (balance.data?.balanceCents ?? 0) <= 0}
+                >
+                  Redeem
+                </button>
+              </div>
+              {successProof && (
+                <div className="mt-2 text-sm text-green-600 dark:text-green-400">
+                  Proof reference: {successProof}
+                </div>
+              )}
             </div>
           )}
         </div>
         <div>
-          <h2 className="font-semibold">Recent</h2>
+          <h2 className="font-semibold">Recent transactions</h2>
           {history.isLoading && <div className="text-sm opacity-70">Loading transactions…</div>}
           {history.isError && (
             <div className="text-sm text-red-600">Could not load transactions. Please try again.</div>

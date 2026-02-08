@@ -36,7 +36,7 @@ export const AppLayout: React.FC = () => {
           <Link to="/" title="GreenCredits">{collapsed ? 'GC' : 'GreenCredits'}</Link>
         </div>
         <nav className="px-2 space-y-1">
-          <NavItem to="/wallet" label="Wallet" collapsed={collapsed} icon={<Wallet className="h-5 w-5" />} />
+          <NavItem to="/wallet" label="Voucher Balance" collapsed={collapsed} icon={<Wallet className="h-5 w-5" />} />
           <NavItem to="/claims" label="Claims" collapsed={collapsed} icon={<Ticket className="h-5 w-5" />} />
           <NavItem to="/map" label="Map" collapsed={collapsed} icon={<MapIcon className="h-5 w-5" />} />
           <NavItem to="/collections" label="Collections" collapsed={collapsed} icon={<Recycle className="h-5 w-5" />} />
@@ -102,7 +102,7 @@ export const AppLayout: React.FC = () => {
               </button>
             </div>
             <nav className="space-y-1">
-              <NavItem to="/wallet" label="Wallet" icon={<Wallet className="h-5 w-5" />} onNavigate={() => setMobileOpen(false)} />
+              <NavItem to="/wallet" label="Voucher Balance" icon={<Wallet className="h-5 w-5" />} onNavigate={() => setMobileOpen(false)} />
               <NavItem to="/claims" label="Claims" icon={<Ticket className="h-5 w-5" />} onNavigate={() => setMobileOpen(false)} />
               <NavItem to="/map" label="Map" icon={<MapIcon className="h-5 w-5" />} onNavigate={() => setMobileOpen(false)} />
               <NavItem to="/collections" label="Collections" icon={<Recycle className="h-5 w-5" />} onNavigate={() => setMobileOpen(false)} />

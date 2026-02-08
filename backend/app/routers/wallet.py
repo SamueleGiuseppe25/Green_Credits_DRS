@@ -1,12 +1,18 @@
-from datetime import datetime
+from typing import Annotated
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Query, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..services.db import get_db_session
 from ..dependencies.auth import CurrentUserDep
-from ..services.wallet import get_balance, get_history
-from ..schemas import WalletBalanceResponse, WalletHistoryResponse, Transaction
+from ..services.wallet import get_balance, get_history, donate as wallet_donate, redeem as wallet_redeem
+from ..schemas import (
+    WalletBalanceResponse,
+    WalletHistoryResponse,
+    Transaction,
+    AmountCentsRequest,
+    DonateRedeemResponse,
+)
 
 
 router = APIRouter()
@@ -23,7 +29,7 @@ async def history(
     current_user: CurrentUserDep,
     page: int = Query(default=1, ge=1),
     pageSize: int = Query(default=20, ge=1, le=100),
-    session: AsyncSession = Depends(get_db_session),
+    session: Annotated[AsyncSession, Depends(get_db_session)],
 ):
     rows, total = await get_history(session, current_user.id, page, pageSize)
     items = [
@@ -31,5 +37,35 @@ async def history(
         for r in rows
     ]
     return {"items": items, "total": total, "page": page, "pageSize": pageSize}
+
+
+@router.post("/donate", response_model=DonateRedeemResponse)
+async def donate(
+    current_user: CurrentUserDep,
+    payload: AmountCentsRequest,
+    session: Annotated[AsyncSession, Depends(get_db_session)],
+):
+    if payload.amountCents <= 0:
+        raise HTTPException(status_code=400, detail="Amount must be positive")
+    try:
+        proof_ref, new_balance_cents = await wallet_donate(session, current_user.id, payload.amountCents)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    return {"proofRef": proof_ref, "newBalanceCents": new_balance_cents}
+
+
+@router.post("/redeem", response_model=DonateRedeemResponse)
+async def redeem(
+    current_user: CurrentUserDep,
+    payload: AmountCentsRequest,
+    session: Annotated[AsyncSession, Depends(get_db_session)],
+):
+    if payload.amountCents <= 0:
+        raise HTTPException(status_code=400, detail="Amount must be positive")
+    try:
+        proof_ref, new_balance_cents = await wallet_redeem(session, current_user.id, payload.amountCents)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    return {"proofRef": proof_ref, "newBalanceCents": new_balance_cents}
 
 

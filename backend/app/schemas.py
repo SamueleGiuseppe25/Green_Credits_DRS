@@ -39,6 +39,15 @@ class WalletHistoryResponse(BaseModel):
     pageSize: int
 
 
+class AmountCentsRequest(BaseModel):
+    amountCents: int
+
+
+class DonateRedeemResponse(BaseModel):
+    proofRef: str
+    newBalanceCents: int
+
+
 class Subscription(BaseModel):
     status: str
     planCode: Optional[str] = None

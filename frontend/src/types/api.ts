@@ -102,4 +102,27 @@ export interface PendingClaimItem {
   ts?: string
 }
 
+export interface AdminMetrics {
+  users_total: number
+  active_subscriptions: number
+  collections_total: number
+  collections_scheduled: number
+  voucher_total_cents: number
+}
+
+export interface AdminCollectionRow {
+  id: number
+  user_id: number
+  return_point_id: number
+  scheduled_at: string
+  status: string
+  bag_count: number
+  notes: string | null
+}
+
+export interface DonateRedeemResponse {
+  proofRef: string
+  newBalanceCents: number
+}
+
 
