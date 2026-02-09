@@ -6,6 +6,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..config import get_settings
 from ..services.db import get_db_session
+from datetime import datetime
+
 from ..services.subscriptions import get_me as svc_get_me, choose_plan as svc_choose
 
 logger = logging.getLogger("gc.webhooks.stripe")
@@ -82,6 +84,23 @@ async def stripe_webhook(
     except Exception:
         logger.exception("Failed to activate subscription for user_id=%s plan=%s", user_id, plan_code)
         return {"ok": True}
+
+    # Prefer Stripe's own period timestamps when available.
+    try:
+        stripe_sub_id = session_obj.get("subscription")
+        if stripe_sub_id:
+            sub_obj = stripe.Subscription.retrieve(stripe_sub_id)
+            cps = sub_obj.get("current_period_start")
+            cpe = sub_obj.get("current_period_end")
+            if cps and cpe:
+                current = await svc_get_me(session, user_id)
+                if current:
+                    current.current_period_start = datetime.utcfromtimestamp(int(cps)).date()
+                    current.current_period_end = datetime.utcfromtimestamp(int(cpe)).date()
+                    await session.commit()
+    except Exception:
+        # Fall back to service-computed period dates.
+        pass
 
     return {"ok": True}
 

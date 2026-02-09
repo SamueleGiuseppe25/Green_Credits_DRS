@@ -1,8 +1,11 @@
-import React, { useMemo, useState } from 'react'
+import React, { useEffect, useMemo, useState } from 'react'
 import { useCollections, useCreateCollection, useCancelCollection, useDeleteCollection } from '../hooks/useCollections'
 import { useMyCollectionSlots, useUpsertCollectionSlots, useDeleteCollectionSlot } from '../hooks/useSubscription'
 import { useReturnPoints } from '../hooks/useReturnPoints'
 import toast from 'react-hot-toast'
+import { apiFetch } from '../lib/api'
+import { Link } from 'react-router-dom'
+import type { Subscription } from '../types/api'
 
 const SERVICE_START_MINUTES = 8 * 60
 const SERVICE_END_MINUTES = 20 * 60
@@ -40,6 +43,9 @@ export const CollectionsPage: React.FC = () => {
   const upsertSlot = useUpsertCollectionSlots()
   const deleteSlot = useDeleteCollectionSlot()
 
+  const [sub, setSub] = useState<Subscription | null>(null)
+  const [subLoading, setSubLoading] = useState(true)
+
   const items = data?.items ?? []
   const total = data?.total ?? 0
   const totalPages = Math.max(1, Math.ceil(total / pageSize))
@@ -58,6 +64,39 @@ export const CollectionsPage: React.FC = () => {
   const [bagCount, setBagCount] = useState<number>(1)
   const [notes, setNotes] = useState<string>('')
   const minDate = formatTodayInputValue()
+
+  useEffect(() => {
+    let mounted = true
+    setSubLoading(true)
+    apiFetch<Subscription>('/subscriptions/me')
+      .then((res) => {
+        if (mounted) setSub(res)
+      })
+      .catch(() => {
+        if (mounted) setSub(null)
+      })
+      .finally(() => {
+        if (mounted) setSubLoading(false)
+      })
+    return () => {
+      mounted = false
+    }
+  }, [])
+
+  const isSubEligible = useMemo(() => {
+    if (!sub) return false
+    const status = (sub.status || '').toLowerCase()
+    const allowedStatus = status === 'active' || status === 'canceled' || status === 'cancelled'
+    if (!allowedStatus) return false
+
+    if (!sub.currentPeriodEnd) return true // grandfather clause
+    const end = new Date(`${sub.currentPeriodEnd}T00:00:00`)
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+    return end >= today
+  }, [sub])
+
+  const subscriptionBlocked = !subLoading && !isSubEligible
 
   const scheduledAtISO = useMemo(() => {
     if (!date || !time) return ''
@@ -179,7 +218,14 @@ export const CollectionsPage: React.FC = () => {
           </div>
         </div>
 
-        <div className={`border rounded-md p-4 ${slotEnabled ? 'opacity-60 pointer-events-none' : ''}`}>
+        <div className="lg:row-start-1 lg:col-start-3">
+          {subscriptionBlocked && (
+            <div className="mb-3 text-sm border rounded px-3 py-2 bg-amber-50 text-amber-900 dark:bg-amber-900/20 dark:text-amber-100">
+              You need an active subscription to book collections.{' '}
+              <Link className="underline" to="/settings">Go to settings</Link>.
+            </div>
+          )}
+          <div className={`border rounded-md p-4 ${(slotEnabled || subscriptionBlocked) ? 'opacity-60 pointer-events-none' : ''}`}>
           <div className="font-semibold mb-2">Create a collection</div>
           {slotEnabled && (
             <div className="text-xs mb-2 opacity-70">
@@ -214,12 +260,13 @@ export const CollectionsPage: React.FC = () => {
               <button
                 type="submit"
                 className="text-sm px-3 py-1 rounded bg-emerald-600 text-white disabled:opacity-50"
-                disabled={slotEnabled || createMutation.isPending || !scheduledAtISO || !returnPointId}
+                disabled={slotEnabled || subscriptionBlocked || createMutation.isPending || !scheduledAtISO || !returnPointId}
               >
                 {createMutation.isPending ? 'Creating…' : 'Create'}
               </button>
             </div>
           </form>
+          </div>
         </div>
 
         <div className="border rounded-md p-4">

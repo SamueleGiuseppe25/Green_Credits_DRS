@@ -44,6 +44,8 @@ class Subscription(BaseModel):
     planCode: Optional[str] = None
     startDate: Optional[date] = None
     endDate: Optional[date] = None
+    currentPeriodStart: Optional[date] = None
+    currentPeriodEnd: Optional[date] = None
 
 
 class CollectionSlot(BaseModel):

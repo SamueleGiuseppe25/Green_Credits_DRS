@@ -64,6 +64,8 @@ export interface Subscription {
   planCode: string | null
   startDate: string | null // ISO date
   endDate: string | null // ISO date or null
+  currentPeriodStart?: string | null // ISO date
+  currentPeriodEnd?: string | null // ISO date
 }
 
 export interface CollectionSlot {

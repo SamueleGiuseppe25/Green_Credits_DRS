@@ -5,7 +5,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from pydantic import BaseModel
 from typing import Optional
 
-from ..dependencies.auth import CurrentUserDep
+from ..dependencies.auth import CurrentUserDep, require_active_subscription
+from ..models.user import User
 from ..services.db import get_db_session
 from ..services.collections import create as svc_create, list_me as svc_list_me, cancel as svc_cancel, delete_canceled as svc_delete_canceled
 
@@ -23,8 +24,8 @@ router = APIRouter()
 
 @router.post("", status_code=201)
 async def create_collection(
-    current_user: CurrentUserDep,
     payload: CreateCollectionRequest,
+    current_user: User = Depends(require_active_subscription),
     session: AsyncSession = Depends(get_db_session),
 ):
     scheduled_at = datetime.fromisoformat(payload.scheduledAt)  # assume ISO from client

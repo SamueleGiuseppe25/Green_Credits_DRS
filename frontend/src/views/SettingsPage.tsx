@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
 import { useAuth } from '../context/AuthContext'
-import { useChoosePlan, useMySubscription } from '../hooks/useSubscription'
+import { useMySubscription } from '../hooks/useSubscription'
 import toast from 'react-hot-toast'
 import { apiFetch } from '../lib/api'
 import { useNavigate } from 'react-router-dom'
@@ -79,6 +79,9 @@ export const SettingsPage: React.FC = () => {
               <div><span className="opacity-70">Plan</span> {sub.data.planCode || '-'}</div>
               <div><span className="opacity-70">Status</span> {sub.data.status}</div>
               <div><span className="opacity-70">Since</span> {sub.data.startDate ? new Date(sub.data.startDate).toLocaleDateString() : '-'}</div>
+              {sub.data.currentPeriodEnd ? (
+                <div><span className="opacity-70">Active until</span> {new Date(sub.data.currentPeriodEnd).toLocaleDateString()}</div>
+              ) : null}
               <div className="pt-2 flex gap-2">
                 <button
                   className="text-sm px-3 py-1 rounded border hover:bg-gray-100 dark:hover:bg-gray-700"

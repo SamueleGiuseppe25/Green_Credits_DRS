@@ -16,12 +16,21 @@ router = APIRouter()
 async def get_me(current_user: CurrentUserDep, session: AsyncSession = Depends(get_db_session)):
     sub = await svc_get_me(session, current_user.id)
     if sub is None:
-        return {"status": "inactive", "planCode": None, "startDate": None, "endDate": None}
+        return {
+            "status": "inactive",
+            "planCode": None,
+            "startDate": None,
+            "endDate": None,
+            "currentPeriodStart": None,
+            "currentPeriodEnd": None,
+        }
     return {
         "status": sub.status,
         "planCode": sub.plan_code,
         "startDate": sub.start_date,
         "endDate": sub.end_date,
+        "currentPeriodStart": sub.current_period_start,
+        "currentPeriodEnd": sub.current_period_end,
     }
 
 
@@ -33,6 +42,8 @@ async def activate(current_user: CurrentUserDep, session: AsyncSession = Depends
         "planCode": sub.plan_code,
         "startDate": sub.start_date,
         "endDate": sub.end_date,
+        "currentPeriodStart": sub.current_period_start,
+        "currentPeriodEnd": sub.current_period_end,
     }
 
 
@@ -44,6 +55,8 @@ async def cancel(current_user: CurrentUserDep, session: AsyncSession = Depends(g
         "planCode": sub.plan_code,
         "startDate": sub.start_date,
         "endDate": sub.end_date,
+        "currentPeriodStart": sub.current_period_start,
+        "currentPeriodEnd": sub.current_period_end,
     }
 
 
@@ -66,6 +79,8 @@ async def choose_plan(
         "planCode": sub.plan_code,
         "startDate": sub.start_date,
         "endDate": sub.end_date,
+        "currentPeriodStart": sub.current_period_start,
+        "currentPeriodEnd": sub.current_period_end,
     }
 
 
