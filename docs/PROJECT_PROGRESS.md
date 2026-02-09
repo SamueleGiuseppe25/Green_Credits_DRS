@@ -7,6 +7,24 @@ GreenCredits — subscription-based bottle collection platform. Users pay a mont
 
 ## ✅ Completed Features
 
+### Feature A: Admin Dashboard Real Metrics
+**Status:** ✅ Completed (commit 3f6c547)
+**Implemented by:** Claude Code + Cursor
+
+**What was built:**
+- Backend: `/admin/metrics` endpoint returns 5 real KPIs from DB (users_total, active_subscriptions, collections_total, collections_scheduled, voucher_total_cents)
+- Backend: `/admin/collections` endpoint with status filtering (limit 50, max 200)
+- Backend: `/admin/collections/{id}/status` PATCH for admin status transitions
+- Frontend: `AdminPage.tsx` fetches and renders live metrics + filterable collections table
+- Frontend: `adminApi.ts` typed API client for admin endpoints
+- Auth: Protected by `require_admin` dependency
+
+**Files:**
+- `backend/app/routers/admin.py`
+- `frontend/src/views/AdminPage.tsx`
+- `frontend/src/lib/adminApi.ts`
+- `frontend/src/ui/RequireAdmin.tsx`
+
 ### Feature B: Subscription Period Fields + Scheduling Validation
 **Status:** ✅ Completed (Feb 8, 2026)
 **Implemented by:** Claude Code + Cursor
@@ -50,13 +68,7 @@ None currently.
 
 ## 📋 Planned Features (Prioritized)
 
-### Next Up: [TBD - awaiting planning session]
-
-### Feature A: Fix Admin Dashboard Total Cards
-**Priority:** Medium
-**Effort:** Low
-**Dependencies:** None
-**Description:** Replace mock data in admin dashboard cards with real computed values from database
+### Next Up: Feature C (Drivers MVP)
 
 ### Feature C: Drivers MVP
 **Priority:** High
