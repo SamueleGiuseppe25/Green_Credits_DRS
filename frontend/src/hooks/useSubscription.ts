@@ -55,24 +55,3 @@ export function useDeleteCollectionSlot() {
     },
   })
 }
-
-export function useChoosePlan() {
-  const qc = useQueryClient()
-  return useMutation({
-    mutationFn: (planCode: 'weekly' | 'monthly' | 'yearly') =>
-      apiFetch<Subscription>('/subscriptions/choose', {
-        method: 'POST',
-        body: JSON.stringify({ planCode }),
-      }),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['subscription', 'me'] })
-      toast.success('Subscription activated')
-    },
-    onError: (err: any) => {
-      const detail = err?.message ? `: ${err.message}` : ''
-      toast.error(`Could not activate subscription${detail}`)
-    },
-  })
-}
-
-

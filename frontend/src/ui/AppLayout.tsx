@@ -24,7 +24,7 @@ export const AppLayout: React.FC = () => {
   const toggleSidebar = () => {
     setCollapsed((c) => {
       const next = !c
-      try { localStorage.setItem('gc_sidebar_collapsed', next ? '1' : '0') } catch {}
+      try { localStorage.setItem('gc_sidebar_collapsed', next ? '1' : '0') } catch { /* ignore */ }
       return next
     })
   }

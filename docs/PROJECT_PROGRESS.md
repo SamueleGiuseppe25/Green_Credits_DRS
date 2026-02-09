@@ -58,6 +58,22 @@ GreenCredits — subscription-based bottle collection platform. Users pay a mont
 - `PLAN_DURATIONS` dict maps plan codes to day counts (weekly=7, monthly=30, yearly=365)
 - Error messages are user-friendly; blocked users see link to Settings page
 
+### Chore: Codebase Cleanup
+**Status:** ✅ Completed (Feb 9, 2026)
+**Implemented by:** Cursor Agent (prompt by Claude Code)
+
+**What was done:**
+- Removed duplicate `from typing import Annotated` import in `backend/app/dependencies/auth.py`
+- Removed dead commented-out code block at end of `backend/app/schemas.py`
+- Deleted unused `backend/app/schemas/auth.py` + entire `backend/app/schemas/` directory
+- Removed unused `useChoosePlan()` export from `frontend/src/hooks/useSubscription.ts`
+- Deleted stale auto-generated `frontend/src/types/api.d.ts`
+- Fixed `frontend/.env.example` to point to `http://localhost:8000`
+- Added `frontend/eslint.config.js` (ESLint v9 flat config) + minimal dev deps so `npm run lint` works
+- Fixed empty `catch {}` lint error in `frontend/src/ui/AppLayout.tsx`
+
+**Verification:** `npm run build` ✅ | `npm run lint` ✅ | `docker compose up` ✅
+
 ---
 
 ## 🚧 In Progress
@@ -109,6 +125,27 @@ None currently.
 3. **Note edge cases** discovered during implementation
 4. **Track blockers** and technical debt
 5. **Reference this file** at start of each session to maintain context
+
+## 🛠 Development Workflow
+
+**Primary dev environment:** Docker Compose (backend + Postgres + Adminer)
+```bash
+docker compose up          # Postgres :5432, backend :8000, Adminer :8081
+```
+The backend container auto-runs `alembic upgrade head` on startup.
+
+**Frontend (separate terminal):**
+```bash
+cd frontend
+npm run dev                # http://localhost:5173
+```
+
+**Verification commands:**
+```bash
+docker compose up          # backend must start without errors
+cd frontend && npm run build   # must succeed with no TS errors
+cd frontend && npm run lint    # should pass
+```
 
 ---
 

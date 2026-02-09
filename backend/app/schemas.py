@@ -92,16 +92,3 @@ class RegisterRequest(BaseModel):
     email: str
     password: str
     full_name: Optional[str] = None
-
-# --- Auth Schemas (for JWT endpoints) ---
-#This line is commented out because the auth schemas are not used in the current implementation
-# from .schemas.auth import LoginRequest, TokenResponse, UserOut
-# if you need to use them, uncomment the line below
-# from .schemas.auth import LoginRequest, TokenResponse, UserOut
-
-
-
-
-
-
-
