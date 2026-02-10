@@ -8,6 +8,8 @@ import { MapPage } from './views/MapPage'
 import { AdminPage } from './views/AdminPage'
 import { RouteGuard } from './ui/RouteGuard'
 import { RequireAdmin } from './ui/RequireAdmin'
+import { RequireDriver } from './ui/RequireDriver'
+import { DriverPage } from './views/DriverPage'
 import { CollectionsPage } from './views/CollectionsPage'
 import { LandingPage } from './views/LandingPage'
 import { SignupPage } from './views/SignupPage'
@@ -39,6 +41,7 @@ export const routes: RouteObject[] = [
       { path: '/collections', element: <RouteGuard><CollectionsPage /></RouteGuard> },
       { path: '/settings', element: <RouteGuard><SettingsPage /></RouteGuard> },
       { path: '/admin', element: <RouteGuard><RequireAdmin><AdminPage /></RequireAdmin></RouteGuard> },
+      { path: '/driver', element: <RouteGuard><RequireDriver><DriverPage /></RequireDriver></RouteGuard> },
     ],
   },
 ]

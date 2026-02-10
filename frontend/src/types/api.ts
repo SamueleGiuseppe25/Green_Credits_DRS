@@ -85,6 +85,8 @@ export interface Collection {
   status: string
   bagCount?: number
   notes?: string | null
+  driverId?: number | null
+  proofUrl?: string | null
   createdAt: string
   updatedAt: string
 }
@@ -94,6 +96,29 @@ export interface CollectionsResponse {
   total: number
   page: number
   pageSize: number
+}
+
+export interface DriverProfile {
+  id: number
+  userId: number
+  vehicleType: string | null
+  vehiclePlate: string | null
+  phone: string | null
+  isAvailable: boolean
+}
+
+export interface DriverCollection {
+  id: number
+  userId: number
+  scheduledAt: string
+  returnPointId: number
+  status: string
+  bagCount: number
+  notes: string | null
+  driverId: number | null
+  proofUrl: string | null
+  createdAt: string
+  updatedAt: string
 }
 
 export interface PendingClaimItem {

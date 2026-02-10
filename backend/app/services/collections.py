@@ -4,7 +4,8 @@ from typing import Tuple, List
 from sqlalchemy import select, func, and_
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from ..models import Collection, CollectionSlot
+from ..models import Collection, CollectionSlot, Driver, WalletTransaction
+from .wallet import credit_wallet_for_collection
 
 SERVICE_START = time_cls(8, 0)
 SERVICE_END = time_cls(20, 0)
@@ -97,11 +98,14 @@ async def cancel(session: AsyncSession, user_id: int, id_: int) -> Collection | 
 
 
 ALLOWED_TRANSITIONS: dict[str, set[str]] = {
-    "scheduled": {"collected", "canceled"},
+    "scheduled": {"assigned", "canceled"},
+    "assigned": {"collected", "canceled"},
     "collected": {"processed"},
     "processed": set(),
     "canceled": set(),
 }
+
+VALID_STATUSES = {"scheduled", "assigned", "collected", "processed", "canceled"}
 
 
 async def admin_transition_status(session: AsyncSession, id_: int, new_status: str) -> tuple[Collection | None, str | None]:
@@ -110,12 +114,48 @@ async def admin_transition_status(session: AsyncSession, id_: int, new_status: s
     if col is None:
         return None, None
     current = col.status
-    if new_status not in {"scheduled", "collected", "processed", "canceled"}:
+    if new_status not in VALID_STATUSES:
         return col, "Invalid status"
     allowed = ALLOWED_TRANSITIONS.get(current, set())
     if new_status not in allowed:
         return col, f"Invalid transition: {current} -> {new_status}"
     col.status = new_status
+
+    # Auto-credit wallet when collection is processed
+    if new_status == "processed":
+        # Idempotency: check if credit already exists for this collection
+        existing_credit = await session.scalar(
+            select(func.count())
+            .select_from(WalletTransaction)
+            .where(
+                WalletTransaction.user_id == col.user_id,
+                WalletTransaction.kind == "collection_credit",
+                WalletTransaction.note.like(f"%collection #{col.id}%"),
+            )
+        )
+        if int(existing_credit or 0) == 0:
+            amount_cents = col.bag_count * 500  # 5 EUR per bag
+            await credit_wallet_for_collection(
+                session, col.user_id, col.id, amount_cents
+            )
+
+    await session.commit()
+    await session.refresh(col)
+    return col, None
+
+
+async def assign_driver(session: AsyncSession, collection_id: int, driver_id: int) -> tuple[Collection | None, str | None]:
+    col = (await session.execute(select(Collection).where(Collection.id == collection_id).limit(1))).scalars().first()
+    if col is None:
+        return None, None
+
+    driver = (await session.execute(select(Driver).where(Driver.id == driver_id).limit(1))).scalars().first()
+    if driver is None:
+        return col, "Driver not found"
+
+    col.driver_id = driver.id
+    if col.status == "scheduled":
+        col.status = "assigned"
     await session.commit()
     await session.refresh(col)
     return col, None

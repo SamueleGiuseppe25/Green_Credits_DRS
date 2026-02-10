@@ -19,6 +19,9 @@ class Collection(Base):
     bag_count: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
     notes: Mapped[str | None] = mapped_column(String(1024), nullable=True)
 
+    driver_id: Mapped[int | None] = mapped_column(Integer, nullable=True, index=True)
+    proof_url: Mapped[str | None] = mapped_column(String(512), nullable=True)
+
     is_archived: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False, server_default="0")
 
     created_at: Mapped[datetime] = mapped_column(

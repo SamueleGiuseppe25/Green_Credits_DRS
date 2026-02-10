@@ -5,8 +5,10 @@ from pydantic import BaseModel
 
 from ..dependencies.auth import require_admin
 from ..models import Collection, Subscription, User, WalletTransaction
-from ..services.collections import admin_transition_status
+from ..services.collections import admin_transition_status, assign_driver as svc_assign_driver
+from ..services.drivers import create_driver as svc_create_driver, list_drivers as svc_list_drivers
 from ..services.db import get_db_session
+from ..schemas import AssignDriverRequest, DriverProfileCreate, DriverProfileOut
 
 router = APIRouter(prefix="/admin", tags=["admin"], dependencies=[Depends(require_admin)])
 
@@ -65,6 +67,8 @@ async def list_collections(
             "status": c.status,
             "bag_count": c.bag_count,
             "notes": c.notes,
+            "driver_id": c.driver_id,
+            "proof_url": c.proof_url,
         }
         for c in rows
     ]
@@ -92,6 +96,77 @@ async def update_collection_status(
         "status": col.status,
         "bagCount": col.bag_count,
         "notes": col.notes,
+        "driverId": col.driver_id,
+        "proofUrl": col.proof_url,
+        "createdAt": col.created_at,
+        "updatedAt": col.updated_at,
+    }
+
+
+@router.post("/drivers", status_code=201)
+async def create_driver(
+    payload: DriverProfileCreate,
+    session: AsyncSession = Depends(get_db_session),
+):
+    try:
+        driver = await svc_create_driver(
+            session,
+            email=payload.email,
+            password=payload.password,
+            full_name=payload.fullName,
+            vehicle_type=payload.vehicleType,
+            vehicle_plate=payload.vehiclePlate,
+            phone=payload.phone,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+    return DriverProfileOut(
+        id=driver.id,
+        userId=driver.user_id,
+        vehicleType=driver.vehicle_type,
+        vehiclePlate=driver.vehicle_plate,
+        phone=driver.phone,
+        isAvailable=driver.is_available,
+    )
+
+
+@router.get("/drivers")
+async def list_drivers(session: AsyncSession = Depends(get_db_session)):
+    drivers = await svc_list_drivers(session)
+    return [
+        {
+            "id": d.id,
+            "userId": d.user_id,
+            "vehicleType": d.vehicle_type,
+            "vehiclePlate": d.vehicle_plate,
+            "phone": d.phone,
+            "isAvailable": d.is_available,
+        }
+        for d in drivers
+    ]
+
+
+@router.patch("/collections/{id}/assign-driver")
+async def assign_driver_to_collection(
+    id: int,
+    payload: AssignDriverRequest,
+    session: AsyncSession = Depends(get_db_session),
+):
+    col, err = await svc_assign_driver(session, id, payload.driverId)
+    if col is None:
+        raise HTTPException(status_code=404, detail="Collection not found")
+    if err:
+        raise HTTPException(status_code=400, detail=err)
+    return {
+        "id": col.id,
+        "userId": col.user_id,
+        "scheduledAt": col.scheduled_at,
+        "returnPointId": col.return_point_id,
+        "status": col.status,
+        "bagCount": col.bag_count,
+        "notes": col.notes,
+        "driverId": col.driver_id,
+        "proofUrl": col.proof_url,
         "createdAt": col.created_at,
         "updatedAt": col.updated_at,
     }

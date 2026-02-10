@@ -4,7 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from .routers import auth, wallet, claims, return_points, simulate, healthz
 from .routers import subscriptions, collection_slots, collections, admin, users
-from .routers import payments, stripe_webhooks
+from .routers import payments, stripe_webhooks, drivers
 from .services.db import engine, SessionLocal
 from .config import get_settings
 from .routers import dev_utils
@@ -44,6 +44,7 @@ def create_app() -> FastAPI:
     app.include_router(payments.router)
     app.include_router(stripe_webhooks.router)
     app.include_router(users.router, prefix="/users", tags=["Users"])
+    app.include_router(drivers.router, prefix="/drivers", tags=["Drivers"])
 
     @app.get("/")
     async def root():

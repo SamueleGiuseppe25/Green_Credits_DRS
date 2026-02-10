@@ -10,6 +10,7 @@ export type AuthUser = {
   full_name?: string | null
   is_active?: boolean | null
   is_admin?: boolean | null
+  is_driver?: boolean | null
 } | null
 
 // Use gc_access_token as specified in requirements

@@ -2,7 +2,7 @@ import React from 'react'
 import { Link, NavLink, Outlet, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { Toaster } from 'react-hot-toast'
-import { Wallet, Ticket, Map as MapIcon, Recycle, Settings as SettingsIcon, Shield, Menu, X } from 'lucide-react'
+import { Wallet, Ticket, Map as MapIcon, Recycle, Settings as SettingsIcon, Shield, Truck, Menu, X } from 'lucide-react'
 
 export const AppLayout: React.FC = () => {
   const { isAuthenticated, logout, user } = useAuth()
@@ -42,6 +42,7 @@ export const AppLayout: React.FC = () => {
           <NavItem to="/collections" label="Collections" collapsed={collapsed} icon={<Recycle className="h-5 w-5" />} />
           <NavItem to="/settings" label="Settings" collapsed={collapsed} icon={<SettingsIcon className="h-5 w-5" />} />
           {user?.is_admin ? <NavItem to="/admin" label="Admin" collapsed={collapsed} icon={<Shield className="h-5 w-5" />} /> : null}
+          {user?.is_driver ? <NavItem to="/driver" label="Driver" collapsed={collapsed} icon={<Truck className="h-5 w-5" />} /> : null}
           {!isAuthenticated && <NavItem to="/login" label="Login" collapsed={collapsed} />}
         </nav>
       </aside>
@@ -108,6 +109,7 @@ export const AppLayout: React.FC = () => {
               <NavItem to="/collections" label="Collections" icon={<Recycle className="h-5 w-5" />} onNavigate={() => setMobileOpen(false)} />
               <NavItem to="/settings" label="Settings" icon={<SettingsIcon className="h-5 w-5" />} onNavigate={() => setMobileOpen(false)} />
               {user?.is_admin ? <NavItem to="/admin" label="Admin" icon={<Shield className="h-5 w-5" />} onNavigate={() => setMobileOpen(false)} /> : null}
+              {user?.is_driver ? <NavItem to="/driver" label="Driver" icon={<Truck className="h-5 w-5" />} onNavigate={() => setMobileOpen(false)} /> : null}
               {!isAuthenticated && <NavItem to="/login" label="Login" onNavigate={() => setMobileOpen(false)} />}
             </nav>
           </div>

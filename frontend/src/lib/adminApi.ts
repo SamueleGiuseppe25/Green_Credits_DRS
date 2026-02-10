@@ -17,6 +17,17 @@ export type AdminCollection = {
   status: string
   bag_count: number
   notes: string | null
+  driver_id: number | null
+  proof_url: string | null
+}
+
+export type AdminDriver = {
+  id: number
+  userId: number
+  vehicleType: string | null
+  vehiclePlate: string | null
+  phone: string | null
+  isAvailable: boolean
 }
 
 async function handleAdminResponse<T>(res: Response): Promise<T> {
@@ -41,13 +52,18 @@ async function handleAdminResponse<T>(res: Response): Promise<T> {
   return res.json() as Promise<T>
 }
 
-async function adminFetch<T>(path: string): Promise<T> {
+function authHeaders(): Record<string, string> {
   const token = getToken()
+  return {
+    'Content-Type': 'application/json',
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+  }
+}
+
+async function adminFetch<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(`${API_BASE_URL}${path}`, {
-    headers: {
-      'Content-Type': 'application/json',
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-    },
+    ...init,
+    headers: { ...authHeaders(), ...(init?.headers || {}) },
   })
   return handleAdminResponse<T>(res)
 }
@@ -61,3 +77,34 @@ export function fetchAdminCollections(status?: string): Promise<AdminCollection[
   return adminFetch<AdminCollection[]>(`/admin/collections${qs}`)
 }
 
+export function fetchAdminDrivers(): Promise<AdminDriver[]> {
+  return adminFetch<AdminDriver[]>('/admin/drivers')
+}
+
+export function createAdminDriver(data: {
+  email: string
+  password: string
+  fullName?: string
+  vehicleType?: string
+  vehiclePlate?: string
+  phone?: string
+}): Promise<AdminDriver> {
+  return adminFetch<AdminDriver>('/admin/drivers', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  })
+}
+
+export function assignDriverToCollection(collectionId: number, driverId: number): Promise<AdminCollection> {
+  return adminFetch<AdminCollection>(`/admin/collections/${collectionId}/assign-driver`, {
+    method: 'PATCH',
+    body: JSON.stringify({ driverId }),
+  })
+}
+
+export function processCollection(collectionId: number): Promise<AdminCollection> {
+  return adminFetch<AdminCollection>(`/admin/collections/${collectionId}/status`, {
+    method: 'PATCH',
+    body: JSON.stringify({ status: 'processed' }),
+  })
+}

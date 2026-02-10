@@ -44,10 +44,18 @@ CurrentUserDep = Annotated[User, Depends(get_current_user)]
 
 
 def require_admin(user: User = Depends(get_current_user)) -> User:
-    # Your DB model uses is_admin (based on your migration).
     if not getattr(user, "is_admin", False):
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Admin only")
     return user
+
+
+def require_driver(user: User = Depends(get_current_user)) -> User:
+    if not getattr(user, "is_driver", False):
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Driver only")
+    return user
+
+
+DriverUserDep = Annotated[User, Depends(require_driver)]
 
 
 async def require_active_subscription(
