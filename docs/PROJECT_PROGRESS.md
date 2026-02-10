@@ -58,6 +58,39 @@ GreenCredits — subscription-based bottle collection platform. Users pay a mont
 - `PLAN_DURATIONS` dict maps plan codes to day counts (weekly=7, monthly=30, yearly=365)
 - Error messages are user-friendly; blocked users see link to Settings page
 
+### Feature C: Drivers MVP
+**Status:** ✅ Completed (Feb 9, 2026 — commit b4bf84e)
+**Implemented by:** Claude Code + Cursor
+
+**What was built:**
+- DB: `drivers` table with vehicle info, phone, availability (migration 0008)
+- DB: Added `driver_id` and `proof_url` columns to collections table
+- Backend: `require_driver` dependency in `dependencies/auth.py` + `is_driver` flag on User model
+- Backend: `POST /admin/drivers` — admin creates a driver (registers user + creates driver profile)
+- Backend: `GET /admin/drivers` — admin lists all drivers
+- Backend: `PATCH /admin/collections/{id}/assign-driver` — admin assigns driver to collection
+- Backend: `GET /drivers/me/profile` — driver views own profile
+- Backend: `PATCH /drivers/me/profile` — driver updates profile (vehicle, phone, availability)
+- Backend: `GET /drivers/me/collections` — driver views assigned collections
+- Backend: `PATCH /drivers/me/collections/{id}/mark-collected` — driver marks collection as collected with proof URL
+- Frontend: `DriverPage.tsx` — driver dashboard with profile view, assigned collections, mark-collected action
+- Frontend: `driverApi.ts` — typed API client for driver endpoints
+- Frontend: `RequireDriver.tsx` route guard
+- Frontend: Admin page updated with driver management (create driver form, assign driver to collections)
+
+**Files:**
+- `backend/alembic/versions/0008_add_drivers_and_collection_driver_fields.py` (new)
+- `backend/app/models/driver.py` (new)
+- `backend/app/routers/drivers.py` (new)
+- `backend/app/services/drivers.py` (new)
+- `backend/app/routers/admin.py` (updated with driver endpoints)
+- `backend/app/dependencies/auth.py` (added `require_driver`)
+- `backend/app/schemas.py` (added driver schemas)
+- `frontend/src/views/DriverPage.tsx` (new)
+- `frontend/src/lib/driverApi.ts` (new)
+- `frontend/src/ui/RequireDriver.tsx` (new)
+- `frontend/src/views/AdminPage.tsx` (updated with driver management)
+
 ### Chore: Codebase Cleanup
 **Status:** ✅ Completed (Feb 9, 2026)
 **Implemented by:** Cursor Agent (prompt by Claude Code)
@@ -74,6 +107,49 @@ GreenCredits — subscription-based bottle collection platform. Users pay a mont
 
 **Verification:** `npm run build` ✅ | `npm run lint` ✅ | `docker compose up` ✅
 
+### Chore: Testing Strategy + Unit Tests
+**Status:** ✅ Completed (Feb 10, 2026 — commit fd88ac9, PR #5)
+**Implemented by:** Claude Code
+
+**What was built:**
+- `docs/TESTING_STRATEGY.md` — academic testing strategy document (philosophy, tools, environments, CI plan)
+- Backend test infrastructure: pytest + pytest-asyncio + httpx with shared `conftest.py` fixtures using FastAPI `dependency_overrides` and per-test isolated SQLite databases
+- 24 backend tests: auth (7), admin (5), drivers (4), collections (3), healthz (2), wallet/return-points (3)
+- Frontend test infrastructure: Vitest + React Testing Library + MSW for Node
+- 11 frontend tests: auth utilities (6), LandingPage component (5)
+- CI updated: `.github/workflows/ci.yml` now runs lint + test for both backend and frontend
+
+**Files:**
+- `docs/TESTING_STRATEGY.md` (new)
+- `backend/pyproject.toml` (new)
+- `backend/tests/conftest.py` (new)
+- `backend/tests/test_auth.py`, `test_admin.py`, `test_drivers.py`, `test_collections.py` (new)
+- `backend/tests/test_healthz.py`, `test_wallet_and_return_points.py` (rewritten)
+- `backend/requirements.txt` (added pytest, pytest-asyncio, httpx)
+- `frontend/src/test/setup.ts`, `frontend/src/test/server.ts` (new)
+- `frontend/src/lib/auth.test.ts`, `frontend/src/views/LandingPage.test.tsx` (new)
+- `frontend/vite.config.ts`, `frontend/tsconfig.json`, `frontend/package.json` (updated)
+- `frontend/src/mocks/handlers.ts` (added `/auth/me` handler)
+- `.github/workflows/ci.yml` (updated)
+
+**Verification:** Backend 24/24 ✅ | Frontend 11/11 ✅ | Lint ✅ | Build ✅
+
+### Chore: Landing Page Images
+**Status:** ✅ Completed (Feb 10, 2026)
+**Implemented by:** Claude Code
+
+**What was done:**
+- Replaced 4 `<ImageIcon>` placeholders on LandingPage with real Unsplash photos
+- Hero: Bottles packed for recycling (Nareeta Martin)
+- Blog 1: Recycling scene (Pawel Czerwinski)
+- Blog 2: Team collaborating (Annie Spratt)
+- Blog 3: Zero-waste shopping (Markus Spiske)
+- All images royalty-free under Unsplash License
+
+**Files:**
+- `frontend/public/images/` — 4 new JPG files
+- `frontend/src/views/LandingPage.tsx` — replaced placeholders with `<img>` tags
+
 ---
 
 ## 🚧 In Progress
@@ -84,23 +160,10 @@ None currently.
 
 ## 📋 Planned Features (Prioritized)
 
-### Next Up: Feature C (Drivers MVP)
-
-### Feature C: Drivers MVP
-**Priority:** High
-**Effort:** High
-**Dependencies:** Feature B (subscription validation)
-**Description:** 
-- New role: driver
-- drivers table with vehicle info
-- Assign drivers to scheduled collections
-- Driver dashboard to mark collections completed
-- Credit user wallet upon proof upload
-
 ### Feature D: Driver Payouts MVP
 **Priority:** High
 **Effort:** Medium
-**Dependencies:** Feature C (drivers must exist first)
+**Dependencies:** Feature C (drivers — ✅ completed)
 **Description:**
 - driver_earnings table
 - payouts table
@@ -147,6 +210,15 @@ cd frontend && npm run build   # must succeed with no TS errors
 cd frontend && npm run lint    # should pass
 ```
 
+**Testing commands:**
+```bash
+# Backend (no Docker needed — uses SQLite)
+PYTHONPATH=backend pytest -q backend/tests/
+
+# Frontend (no backend needed — uses MSW mocks)
+cd frontend && npm run test
+```
+
 ---
 
 ## Current Tech Stack
@@ -158,7 +230,9 @@ cd frontend && npm run lint    # should pass
 **Payments:** Stripe (simulated for MVP)
 **Maps:** Leaflet + react-leaflet + OpenStreetMap
 **API Mocking:** MSW (Mock Service Worker)
+**Testing:** pytest + pytest-asyncio + httpx (backend), Vitest + React Testing Library + MSW (frontend)
+**CI:** GitHub Actions — lint, test, build for both backend and frontend
 
 ---
 
-Last Updated: Feb 9, 2026
+Last Updated: Feb 10, 2026
