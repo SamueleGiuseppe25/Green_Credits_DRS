@@ -129,3 +129,30 @@ class AssignDriverRequest(BaseModel):
 
 class MarkCollectedRequest(BaseModel):
     proofUrl: Optional[str] = None
+
+
+# Driver earnings / payouts (ledger-style)
+class DriverEarningOut(BaseModel):
+    id: int
+    driverId: int
+    collectionId: int
+    amountCents: int
+    createdAt: datetime
+
+
+class DriverEarningsBalanceOut(BaseModel):
+    balanceCents: int
+    earnings: List[DriverEarningOut]
+
+
+class DriverPayoutOut(BaseModel):
+    id: int
+    driverId: int
+    amountCents: int
+    note: Optional[str] = None
+    createdAt: datetime
+
+
+class CreatePayoutRequest(BaseModel):
+    amountCents: int
+    note: Optional[str] = None

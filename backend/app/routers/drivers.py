@@ -9,7 +9,19 @@ from ..services.drivers import (
     get_driver_collections,
     mark_collected,
 )
-from ..schemas import DriverProfileOut, DriverProfileUpdate, MarkCollectedRequest
+from ..services.driver_payouts import (
+    get_driver_balance,
+    get_driver_earnings,
+    get_driver_payouts_list,
+)
+from ..schemas import (
+    DriverProfileOut,
+    DriverProfileUpdate,
+    MarkCollectedRequest,
+    DriverEarningsBalanceOut,
+    DriverEarningOut,
+    DriverPayoutOut,
+)
 
 router = APIRouter()
 
@@ -110,3 +122,49 @@ async def mark_collection_collected(
         "createdAt": col.created_at,
         "updatedAt": col.updated_at,
     }
+
+
+@router.get("/me/earnings")
+async def get_my_earnings(
+    user=Depends(require_driver),
+    session: AsyncSession = Depends(get_db_session),
+):
+    driver = await get_driver_by_user_id(session, user.id)
+    if driver is None:
+        raise HTTPException(status_code=404, detail="Driver profile not found")
+
+    balance = await get_driver_balance(session, driver.id)
+    rows = await get_driver_earnings(session, driver.id, limit=50)
+    earnings = [
+        DriverEarningOut(
+            id=e.id,
+            driverId=e.driver_id,
+            collectionId=e.collection_id,
+            amountCents=e.amount_cents,
+            createdAt=e.created_at,
+        )
+        for e in rows
+    ]
+    return DriverEarningsBalanceOut(balanceCents=balance, earnings=earnings)
+
+
+@router.get("/me/payouts")
+async def get_my_payouts(
+    user=Depends(require_driver),
+    session: AsyncSession = Depends(get_db_session),
+):
+    driver = await get_driver_by_user_id(session, user.id)
+    if driver is None:
+        raise HTTPException(status_code=404, detail="Driver profile not found")
+
+    rows = await get_driver_payouts_list(session, driver.id, limit=50)
+    return [
+        DriverPayoutOut(
+            id=p.id,
+            driverId=p.driver_id,
+            amountCents=p.amount_cents,
+            note=p.note,
+            createdAt=p.created_at,
+        )
+        for p in rows
+    ]

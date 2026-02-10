@@ -1,6 +1,6 @@
 import { API_BASE_URL } from './api'
 import { getToken } from './auth'
-import type { DriverProfile, DriverCollection } from '../types/api'
+import type { DriverProfile, DriverCollection, DriverEarningsBalance, DriverPayout } from '../types/api'
 
 async function handleResponse<T>(res: Response): Promise<T> {
   if (!res.ok) {
@@ -63,4 +63,12 @@ export function markCollected(id: number, proofUrl?: string): Promise<DriverColl
     method: 'PATCH',
     body: JSON.stringify({ proofUrl: proofUrl || null }),
   })
+}
+
+export function fetchDriverEarnings(): Promise<DriverEarningsBalance> {
+  return driverFetch<DriverEarningsBalance>('/drivers/me/earnings')
+}
+
+export function fetchDriverPayouts(): Promise<DriverPayout[]> {
+  return driverFetch<DriverPayout[]>('/drivers/me/payouts')
 }

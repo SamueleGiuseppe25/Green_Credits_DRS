@@ -6,6 +6,8 @@ from .collection import Collection
 from .voucher import Voucher
 from .wallet_transaction import WalletTransaction
 from .driver import Driver
+from .driver_earning import DriverEarning
+from .driver_payout import DriverPayout
 
 __all__ = [
     "User",
@@ -16,6 +18,8 @@ __all__ = [
     "Voucher",
     "WalletTransaction",
     "Driver",
+    "DriverEarning",
+    "DriverPayout",
 ]
 
 

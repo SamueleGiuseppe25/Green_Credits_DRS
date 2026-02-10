@@ -39,7 +39,7 @@ export const LoginPage: React.FC = () => {
   }
 
   return (
-    <section className="max-w-sm">
+    <section className="max-w-sm mx-auto">
       <h1 className="text-2xl font-bold mb-4">Login</h1>
       <form onSubmit={handleSubmit} className="space-y-3">
         <div>

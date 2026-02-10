@@ -1,5 +1,6 @@
 import { API_BASE_URL } from './api'
 import { getToken } from './auth'
+import type { DriverEarningsBalance, DriverPayout } from '../types/api'
 
 export type AdminMetrics = {
   users_total: number
@@ -107,4 +108,19 @@ export function processCollection(collectionId: number): Promise<AdminCollection
     method: 'PATCH',
     body: JSON.stringify({ status: 'processed' }),
   })
+}
+
+export function fetchDriverEarnings(driverId: number): Promise<DriverEarningsBalance> {
+  return adminFetch<DriverEarningsBalance>(`/admin/drivers/${driverId}/earnings`)
+}
+
+export function createDriverPayout(driverId: number, amountCents: number, note?: string): Promise<DriverPayout> {
+  return adminFetch<DriverPayout>(`/admin/drivers/${driverId}/payouts`, {
+    method: 'POST',
+    body: JSON.stringify({ amountCents, note: note || null }),
+  })
+}
+
+export function fetchAllPayouts(): Promise<DriverPayout[]> {
+  return adminFetch<DriverPayout[]>('/admin/payouts')
 }

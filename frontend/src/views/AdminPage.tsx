@@ -7,12 +7,16 @@ import {
   createAdminDriver,
   assignDriverToCollection,
   processCollection,
+  fetchDriverEarnings,
+  createDriverPayout,
+  fetchAllPayouts,
   type AdminCollection,
   type AdminMetrics,
   type AdminDriver,
 } from '../lib/adminApi'
+import type { DriverEarningsBalance, DriverPayout } from '../types/api'
 
-type Tab = 'collections' | 'drivers'
+type Tab = 'collections' | 'drivers' | 'payouts'
 type StatusFilter = 'all' | 'scheduled' | 'assigned' | 'collected' | 'completed' | 'cancelled'
 
 export const AdminPage: React.FC = () => {
@@ -20,9 +24,14 @@ export const AdminPage: React.FC = () => {
   const [metrics, setMetrics] = useState<AdminMetrics | null>(null)
   const [collections, setCollections] = useState<AdminCollection[]>([])
   const [drivers, setDrivers] = useState<AdminDriver[]>([])
+  const [payouts, setPayouts] = useState<DriverPayout[]>([])
+  const [selectedPayoutDriverId, setSelectedPayoutDriverId] = useState<number | null>(null)
+  const [selectedDriverEarnings, setSelectedDriverEarnings] = useState<DriverEarningsBalance | null>(null)
   const [metricsLoading, setMetricsLoading] = useState(true)
   const [collectionsLoading, setCollectionsLoading] = useState(true)
   const [driversLoading, setDriversLoading] = useState(true)
+  const [payoutsLoading, setPayoutsLoading] = useState(true)
+  const [driverEarningsLoading, setDriverEarningsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all')
 
@@ -37,6 +46,10 @@ export const AdminPage: React.FC = () => {
     email: '', password: '', fullName: '', vehicleType: '', vehiclePlate: '', phone: '',
   })
   const [createLoading, setCreateLoading] = useState(false)
+
+  // Payout form
+  const [payoutAmountCents, setPayoutAmountCents] = useState('')
+  const [payoutNote, setPayoutNote] = useState('')
 
   const statusParam = useMemo(() => {
     if (statusFilter === 'all') return undefined
@@ -90,6 +103,44 @@ export const AdminPage: React.FC = () => {
     refreshDrivers()
   }, [])
 
+  const refreshAllPayouts = () => {
+    setPayoutsLoading(true)
+    fetchAllPayouts()
+      .then((rows) => setPayouts(rows))
+      .catch((e: any) => {
+        toast.error(e?.message || 'Failed to load payouts')
+      })
+      .finally(() => setPayoutsLoading(false))
+  }
+
+  useEffect(() => {
+    refreshAllPayouts()
+  }, [])
+
+  const refreshSelectedDriverEarnings = async (driverId: number) => {
+    setDriverEarningsLoading(true)
+    try {
+      const res = await fetchDriverEarnings(driverId)
+      setSelectedDriverEarnings(res)
+      setPayoutAmountCents(String(res.balanceCents || 0))
+    } catch (e: any) {
+      toast.error(e?.message || 'Failed to load driver earnings')
+    } finally {
+      setDriverEarningsLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    if (tab !== 'payouts') return
+    if (selectedPayoutDriverId) {
+      refreshSelectedDriverEarnings(selectedPayoutDriverId)
+      return
+    }
+    if (drivers.length > 0) {
+      setSelectedPayoutDriverId(drivers[0].id)
+    }
+  }, [tab, drivers, selectedPayoutDriverId])
+
   const euro = useMemo(() => {
     const cents = metrics?.voucher_total_cents ?? 0
     return `€${(cents / 100).toFixed(2)}`
@@ -120,6 +171,27 @@ export const AdminPage: React.FC = () => {
       refreshCollections()
     } catch (e: any) {
       toast.error(e?.message || 'Failed to process collection')
+    } finally {
+      setActionLoading(false)
+    }
+  }
+
+  const handleProcessPayout = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!selectedPayoutDriverId) return
+    const amt = Number(payoutAmountCents || 0)
+    if (!Number.isFinite(amt) || amt <= 0) {
+      toast.error('Amount must be > 0')
+      return
+    }
+    setActionLoading(true)
+    try {
+      await createDriverPayout(selectedPayoutDriverId, Math.floor(amt), payoutNote || undefined)
+      toast.success('Payout recorded')
+      await refreshSelectedDriverEarnings(selectedPayoutDriverId)
+      refreshAllPayouts()
+    } catch (e: any) {
+      toast.error(e?.message || 'Failed to process payout')
     } finally {
       setActionLoading(false)
     }
@@ -174,6 +246,7 @@ export const AdminPage: React.FC = () => {
       <div className="flex gap-1 border-b mb-4">
         <TabButton active={tab === 'collections'} onClick={() => setTab('collections')}>Collections</TabButton>
         <TabButton active={tab === 'drivers'} onClick={() => setTab('drivers')}>Drivers</TabButton>
+        <TabButton active={tab === 'payouts'} onClick={() => setTab('payouts')}>Payouts</TabButton>
       </div>
 
       {/* ====== COLLECTIONS TAB ====== */}
@@ -425,6 +498,143 @@ export const AdminPage: React.FC = () => {
                 </table>
               </div>
             )}
+          </div>
+        </>
+      )}
+
+      {/* ====== PAYOUTS TAB ====== */}
+      {tab === 'payouts' && (
+        <>
+          <div className="flex items-center justify-between gap-3 mb-3">
+            <div className="font-semibold">Driver Payouts</div>
+          </div>
+
+          <div className="border rounded-md p-4 mb-4">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 items-end">
+              <div>
+                <label className="block text-xs opacity-70 mb-1">Driver</label>
+                <select
+                  className="w-full border rounded px-2 py-1 bg-transparent dark:bg-gray-900"
+                  value={selectedPayoutDriverId ?? ''}
+                  onChange={(e) => {
+                    const id = Number(e.target.value) || null
+                    setSelectedPayoutDriverId(id)
+                    setSelectedDriverEarnings(null)
+                    if (id) refreshSelectedDriverEarnings(id)
+                  }}
+                >
+                  <option value="">Select…</option>
+                  {drivers.map((d) => (
+                    <option key={d.id} value={d.id}>
+                      Driver #{d.id} ({d.vehiclePlate || d.phone || `user #${d.userId}`})
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="lg:col-span-2">
+                <div className="text-xs opacity-70">Balance</div>
+                <div className="text-lg font-semibold">
+                  {driverEarningsLoading ? '—' : `€${(((selectedDriverEarnings?.balanceCents ?? 0) as number) / 100).toFixed(2)}`}
+                </div>
+              </div>
+            </div>
+
+            <form onSubmit={handleProcessPayout} className="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div>
+                <label className="block text-xs opacity-70 mb-1">Amount (cents)</label>
+                <input
+                  className="w-full border rounded px-2 py-1 bg-transparent dark:bg-gray-900"
+                  value={payoutAmountCents}
+                  onChange={(e) => setPayoutAmountCents(e.target.value)}
+                  placeholder="e.g. 500"
+                />
+              </div>
+              <div className="sm:col-span-2">
+                <label className="block text-xs opacity-70 mb-1">Note (optional)</label>
+                <input
+                  className="w-full border rounded px-2 py-1 bg-transparent dark:bg-gray-900"
+                  value={payoutNote}
+                  onChange={(e) => setPayoutNote(e.target.value)}
+                  placeholder="e.g. Weekly payout"
+                />
+              </div>
+              <div className="sm:col-span-3">
+                <button
+                  type="submit"
+                  disabled={!selectedPayoutDriverId || actionLoading}
+                  className="text-sm px-4 py-1.5 rounded bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-50"
+                >
+                  {actionLoading ? 'Processing…' : 'Process Payout'}
+                </button>
+              </div>
+            </form>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <div className="border rounded-md overflow-hidden">
+              <div className="p-2 text-sm font-medium bg-gray-100 dark:bg-gray-800">Selected driver earnings</div>
+              {driverEarningsLoading ? (
+                <div className="p-3 text-sm opacity-70">Loading…</div>
+              ) : !selectedDriverEarnings ? (
+                <div className="p-3 text-sm opacity-70">Select a driver to view earnings.</div>
+              ) : selectedDriverEarnings.earnings.length === 0 ? (
+                <div className="p-3 text-sm opacity-70">No earnings yet.</div>
+              ) : (
+                <div className="overflow-auto">
+                  <table className="w-full text-left text-sm">
+                    <thead>
+                      <tr className="bg-gray-50 dark:bg-gray-900/40">
+                        <th className="p-2">Date</th>
+                        <th className="p-2">Collection</th>
+                        <th className="p-2">Amount</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {selectedDriverEarnings.earnings.map((er) => (
+                        <tr key={er.id} className="border-t">
+                          <td className="p-2">{new Date(er.createdAt).toLocaleString()}</td>
+                          <td className="p-2">#{er.collectionId}</td>
+                          <td className="p-2">€{(er.amountCents / 100).toFixed(2)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+
+            <div className="border rounded-md overflow-hidden">
+              <div className="p-2 text-sm font-medium bg-gray-100 dark:bg-gray-800">Payouts history (all drivers)</div>
+              {payoutsLoading ? (
+                <div className="p-3 text-sm opacity-70">Loading payouts…</div>
+              ) : payouts.length === 0 ? (
+                <div className="p-3 text-sm opacity-70">No payouts recorded.</div>
+              ) : (
+                <div className="overflow-auto">
+                  <table className="w-full text-left text-sm">
+                    <thead>
+                      <tr className="bg-gray-50 dark:bg-gray-900/40">
+                        <th className="p-2">Date</th>
+                        <th className="p-2">Driver</th>
+                        <th className="p-2">Amount</th>
+                        <th className="p-2">Note</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {payouts.map((p) => (
+                        <tr key={p.id} className="border-t">
+                          <td className="p-2">{new Date(p.createdAt).toLocaleString()}</td>
+                          <td className="p-2">#{p.driverId}</td>
+                          <td className="p-2">€{(p.amountCents / 100).toFixed(2)}</td>
+                          <td className="p-2 text-xs opacity-80">{p.note || ''}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
           </div>
         </>
       )}

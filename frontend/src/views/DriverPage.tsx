@@ -5,14 +5,20 @@ import {
   updateDriverProfile,
   fetchDriverCollections,
   markCollected,
+  fetchDriverEarnings,
+  fetchDriverPayouts,
 } from '../lib/driverApi'
-import type { DriverProfile, DriverCollection } from '../types/api'
+import type { DriverProfile, DriverCollection, DriverEarningsBalance, DriverPayout } from '../types/api'
 
 export const DriverPage: React.FC = () => {
   const [profile, setProfile] = useState<DriverProfile | null>(null)
   const [collections, setCollections] = useState<DriverCollection[]>([])
+  const [earnings, setEarnings] = useState<DriverEarningsBalance | null>(null)
+  const [payouts, setPayouts] = useState<DriverPayout[]>([])
   const [profileLoading, setProfileLoading] = useState(true)
   const [collectionsLoading, setCollectionsLoading] = useState(true)
+  const [earningsLoading, setEarningsLoading] = useState(true)
+  const [payoutsLoading, setPayoutsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [statusFilter, setStatusFilter] = useState<'all' | 'assigned' | 'collected'>('all')
 
@@ -54,6 +60,35 @@ export const DriverPage: React.FC = () => {
       .finally(() => setCollectionsLoading(false))
   }, [statusFilter])
 
+  const refreshEarnings = async () => {
+    setEarningsLoading(true)
+    try {
+      const res = await fetchDriverEarnings()
+      setEarnings(res)
+    } catch (e: any) {
+      toast.error(e?.message || 'Failed to load earnings')
+    } finally {
+      setEarningsLoading(false)
+    }
+  }
+
+  const refreshPayouts = async () => {
+    setPayoutsLoading(true)
+    try {
+      const res = await fetchDriverPayouts()
+      setPayouts(res)
+    } catch (e: any) {
+      toast.error(e?.message || 'Failed to load payouts')
+    } finally {
+      setPayoutsLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    refreshEarnings()
+    refreshPayouts()
+  }, [])
+
   const handleSaveProfile = async () => {
     try {
       const updated = await updateDriverProfile({
@@ -81,12 +116,19 @@ export const DriverPage: React.FC = () => {
       const status = statusFilter === 'all' ? undefined : statusFilter
       const rows = await fetchDriverCollections(status)
       setCollections(rows)
+      // Refresh earnings (an earning row is created on collected)
+      refreshEarnings()
     } catch (e: any) {
       toast.error(e?.message || 'Failed to mark collected')
     } finally {
       setMarkingLoading(false)
     }
   }
+
+  const balanceEuro = (() => {
+    const cents = earnings?.balanceCents ?? 0
+    return `€${(cents / 100).toFixed(2)}`
+  })()
 
   return (
     <section>
@@ -273,6 +315,78 @@ export const DriverPage: React.FC = () => {
           </div>
         </>
       )}
+
+      {/* Earnings Section */}
+      <div className="border rounded-md p-4 mt-6">
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="font-semibold">Earnings</h2>
+          <div className="text-sm">
+            Balance: <span className="font-semibold">{earningsLoading ? '—' : balanceEuro}</span>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <div className="border rounded-md overflow-hidden">
+            <div className="p-2 text-sm font-medium bg-gray-100 dark:bg-gray-800">Earnings history</div>
+            {earningsLoading ? (
+              <div className="p-3 text-sm opacity-70">Loading earnings…</div>
+            ) : (earnings?.earnings?.length ?? 0) === 0 ? (
+              <div className="p-3 text-sm opacity-70">No earnings yet.</div>
+            ) : (
+              <div className="overflow-auto">
+                <table className="w-full text-left text-sm">
+                  <thead>
+                    <tr className="bg-gray-50 dark:bg-gray-900/40">
+                      <th className="p-2">Date</th>
+                      <th className="p-2">Collection</th>
+                      <th className="p-2">Amount</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {earnings!.earnings.map((e) => (
+                      <tr key={e.id} className="border-t">
+                        <td className="p-2">{new Date(e.createdAt).toLocaleString()}</td>
+                        <td className="p-2">#{e.collectionId}</td>
+                        <td className="p-2">€{(e.amountCents / 100).toFixed(2)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+
+          <div className="border rounded-md overflow-hidden">
+            <div className="p-2 text-sm font-medium bg-gray-100 dark:bg-gray-800">Payouts history</div>
+            {payoutsLoading ? (
+              <div className="p-3 text-sm opacity-70">Loading payouts…</div>
+            ) : payouts.length === 0 ? (
+              <div className="p-3 text-sm opacity-70">No payouts yet.</div>
+            ) : (
+              <div className="overflow-auto">
+                <table className="w-full text-left text-sm">
+                  <thead>
+                    <tr className="bg-gray-50 dark:bg-gray-900/40">
+                      <th className="p-2">Date</th>
+                      <th className="p-2">Amount</th>
+                      <th className="p-2">Note</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {payouts.map((p) => (
+                      <tr key={p.id} className="border-t">
+                        <td className="p-2">{new Date(p.createdAt).toLocaleString()}</td>
+                        <td className="p-2">€{(p.amountCents / 100).toFixed(2)}</td>
+                        <td className="p-2 text-xs opacity-80">{p.note || ''}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
     </section>
   )
 }

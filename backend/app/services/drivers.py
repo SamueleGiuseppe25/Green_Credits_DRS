@@ -7,6 +7,7 @@ from ..models.user import User
 from ..models.driver import Driver
 from ..models.collection import Collection
 from ..core.security import get_password_hash
+from .driver_payouts import create_earning
 
 
 async def create_driver(
@@ -89,6 +90,7 @@ async def mark_collected(
     col.status = "collected"
     if proof_url:
         col.proof_url = proof_url
+    await create_earning(session, driver.id, col.id, col.bag_count or 1)
     await session.commit()
     await session.refresh(col)
     return col, None

@@ -121,6 +121,27 @@ export interface DriverCollection {
   updatedAt: string
 }
 
+export interface DriverEarning {
+  id: number
+  driverId: number
+  collectionId: number
+  amountCents: number
+  createdAt: string
+}
+
+export interface DriverEarningsBalance {
+  balanceCents: number
+  earnings: DriverEarning[]
+}
+
+export interface DriverPayout {
+  id: number
+  driverId: number
+  amountCents: number
+  note: string | null
+  createdAt: string
+}
+
 export interface PendingClaimItem {
   claimId: string
   status: 'Pending'

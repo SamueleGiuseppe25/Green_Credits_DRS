@@ -4,11 +4,25 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from pydantic import BaseModel
 
 from ..dependencies.auth import require_admin
-from ..models import Collection, Subscription, User, WalletTransaction
+from ..models import Collection, Subscription, User, WalletTransaction, Driver
 from ..services.collections import admin_transition_status, assign_driver as svc_assign_driver
 from ..services.drivers import create_driver as svc_create_driver, list_drivers as svc_list_drivers
+from ..services.driver_payouts import (
+    create_payout,
+    get_driver_balance,
+    get_driver_earnings,
+    list_all_payouts,
+)
 from ..services.db import get_db_session
-from ..schemas import AssignDriverRequest, DriverProfileCreate, DriverProfileOut
+from ..schemas import (
+    AssignDriverRequest,
+    DriverProfileCreate,
+    DriverProfileOut,
+    CreatePayoutRequest,
+    DriverEarningsBalanceOut,
+    DriverEarningOut,
+    DriverPayoutOut,
+)
 
 router = APIRouter(prefix="/admin", tags=["admin"], dependencies=[Depends(require_admin)])
 
@@ -170,3 +184,64 @@ async def assign_driver_to_collection(
         "createdAt": col.created_at,
         "updatedAt": col.updated_at,
     }
+
+
+@router.get("/drivers/{driver_id}/earnings")
+async def get_driver_earnings_admin(
+    driver_id: int,
+    session: AsyncSession = Depends(get_db_session),
+):
+    driver = await session.scalar(select(Driver).where(Driver.id == driver_id).limit(1))
+    if driver is None:
+        raise HTTPException(status_code=404, detail="Driver not found")
+
+    balance = await get_driver_balance(session, driver_id)
+    rows = await get_driver_earnings(session, driver_id, limit=200)
+    earnings = [
+        DriverEarningOut(
+            id=e.id,
+            driverId=e.driver_id,
+            collectionId=e.collection_id,
+            amountCents=e.amount_cents,
+            createdAt=e.created_at,
+        )
+        for e in rows
+    ]
+    return DriverEarningsBalanceOut(balanceCents=balance, earnings=earnings)
+
+
+@router.post("/drivers/{driver_id}/payouts", status_code=201)
+async def create_driver_payout(
+    driver_id: int,
+    payload: CreatePayoutRequest,
+    session: AsyncSession = Depends(get_db_session),
+):
+    driver = await session.scalar(select(Driver).where(Driver.id == driver_id).limit(1))
+    if driver is None:
+        raise HTTPException(status_code=404, detail="Driver not found")
+    try:
+        payout = await create_payout(session, driver_id, payload.amountCents, payload.note)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+    return DriverPayoutOut(
+        id=payout.id,
+        driverId=payout.driver_id,
+        amountCents=payout.amount_cents,
+        note=payout.note,
+        createdAt=payout.created_at,
+    )
+
+
+@router.get("/payouts")
+async def list_payouts(session: AsyncSession = Depends(get_db_session)):
+    rows = await list_all_payouts(session, limit=200)
+    return [
+        DriverPayoutOut(
+            id=p.id,
+            driverId=p.driver_id,
+            amountCents=p.amount_cents,
+            note=p.note,
+            createdAt=p.created_at,
+        )
+        for p in rows
+    ]
