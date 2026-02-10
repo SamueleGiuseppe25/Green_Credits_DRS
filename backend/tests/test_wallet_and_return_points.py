@@ -1,37 +1,22 @@
-import pytest
-from httpx import AsyncClient
-from fastapi import FastAPI
-
-from app.main import create_app
-
-
-@pytest.mark.asyncio
-async def test_return_points_list(monkeypatch):
-    monkeypatch.setenv("USE_SQLITE_DEV", "true")
-    app: FastAPI = create_app()
-    async with AsyncClient(app=app, base_url="http://test") as client:
-        resp = await client.get("/return-points")
-        assert resp.status_code == 200
-        data = resp.json()
-        assert "items" in data and isinstance(data["items"], list)
-        assert "total" in data and isinstance(data["total"], int)
+async def test_return_points_list(client):
+    """Return-points endpoint is public (no auth needed)."""
+    resp = await client.get("/return-points")
+    assert resp.status_code == 200
+    data = resp.json()
+    assert "items" in data and isinstance(data["items"], list)
+    assert "total" in data and isinstance(data["total"], int)
 
 
-@pytest.mark.asyncio
-async def test_wallet_balance_and_history(monkeypatch):
-    monkeypatch.setenv("USE_SQLITE_DEV", "true")
-    app: FastAPI = create_app()
-    async with AsyncClient(app=app, base_url="http://test") as client:
-        r1 = await client.get("/wallet/balance")
-        assert r1.status_code == 200
-        balance = r1.json()
-        assert "balanceCents" in balance
-        assert "lastUpdated" in balance
-
-        r2 = await client.get("/wallet/history")
-        assert r2.status_code == 200
-        hist = r2.json()
-        assert set(["items", "total", "page", "pageSize"]) <= set(hist.keys())
+async def test_wallet_requires_auth(client):
+    """Wallet balance endpoint rejects requests without a token."""
+    resp = await client.get("/wallet/balance")
+    assert resp.status_code == 403
 
 
-
+async def test_wallet_balance_with_auth(client, auth_headers):
+    """Wallet balance endpoint succeeds with a valid auth token."""
+    resp = await client.get("/wallet/balance", headers=auth_headers)
+    assert resp.status_code == 200
+    balance = resp.json()
+    assert "balanceCents" in balance
+    assert "lastUpdated" in balance

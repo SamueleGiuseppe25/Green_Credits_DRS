@@ -1,13 +1,16 @@
 from functools import lru_cache
-from pydantic_settings import BaseSettings, SettingsConfigDict
+
 from pydantic import Field
+from pydantic_settings import BaseSettings, SettingsConfigDict
+
 
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",
+        env_ignore_empty=True,
         case_sensitive=False,
-        extra="ignore",  # <-- tolerate unrelated env vars (DEBUG, PORT, etc.)
+        extra="ignore",  # tolerate unrelated env vars (DEBUG, PORT, etc.)
     )
 
     app_name: str = "GreenCredits API (MVP)"
@@ -22,6 +25,10 @@ class Settings(BaseSettings):
         description="Opt-in dev-only SQLite fallback when DATABASE_URL is not set.",
     )
 
+    # Runtime
+    debug: bool = Field(default=False)
+    port: int = Field(default=8000)
+
     # JWT / Auth
     secret_key: str = Field(default="dev-secret", description="JWT signing secret")
     jwt_algorithm: str = Field(default="HS256")
@@ -34,6 +41,15 @@ class Settings(BaseSettings):
             "If true, /auth/login accepts any email/password and /auth/me returns a fixed user for dev"
         ),
     )
+
+    # Stripe (TEST mode)
+    stripe_secret_key: str | None = Field(default=None, description="Stripe secret key (STRIPE_SECRET_KEY)")
+    stripe_webhook_secret: str | None = Field(default=None, description="Stripe webhook signing secret (STRIPE_WEBHOOK_SECRET)")
+    frontend_base_url: str = Field(default="http://localhost:5173", description="Frontend base URL (FRONTEND_BASE_URL)")
+    stripe_price_weekly: str | None = Field(default=None, description="Stripe Price ID for weekly plan (STRIPE_PRICE_WEEKLY)")
+    stripe_price_monthly: str | None = Field(default=None, description="Stripe Price ID for monthly plan (STRIPE_PRICE_MONTHLY)")
+    stripe_price_yearly: str | None = Field(default=None, description="Stripe Price ID for yearly plan (STRIPE_PRICE_YEARLY)")
+
 
 @lru_cache(maxsize=1)
 def get_settings() -> Settings:

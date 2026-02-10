@@ -12,9 +12,6 @@ class ReturnPoint(BaseModel):
     retailer: Optional[str] = None
     lat: float
     lng: float
-    hours: Optional[Dict[str, str]] = None
-    services: Optional[List[str]] = None
-    lastVerifiedAt: Optional[datetime] = None
 
 
 class ReturnPointsResponse(BaseModel):
@@ -47,6 +44,8 @@ class Subscription(BaseModel):
     planCode: Optional[str] = None
     startDate: Optional[date] = None
     endDate: Optional[date] = None
+    currentPeriodStart: Optional[date] = None
+    currentPeriodEnd: Optional[date] = None
 
 
 class CollectionSlot(BaseModel):
@@ -54,6 +53,10 @@ class CollectionSlot(BaseModel):
     startTime: str
     endTime: str
     preferredReturnPointId: Optional[int] = None
+    frequency: str = "weekly"
+
+class CollectionSlotOut(CollectionSlot):
+    enabled: bool
 
 
 class Collection(BaseModel):
@@ -64,10 +67,65 @@ class Collection(BaseModel):
     status: str
     bagCount: Optional[int] = Field(default=1)
     notes: Optional[str] = None
+    driverId: Optional[int] = None
+    proofUrl: Optional[str] = None
     createdAt: datetime
     updatedAt: datetime
 
+class LoginRequest(BaseModel):
+    email: str
+    password: str
 
 
-# --- Auth Schemas (for JWT endpoints) ---
-from .schemas.auth import LoginRequest, TokenResponse, UserOut
+class TokenResponse(BaseModel):
+    access_token: str
+    token_type: str = "bearer"
+
+
+class UserOut(BaseModel):
+    id: int
+    email: str
+    full_name: Optional[str] = None
+    is_active: Optional[bool] = True
+    is_admin: Optional[bool] = False
+    is_driver: Optional[bool] = False
+
+# Registration
+class RegisterRequest(BaseModel):
+    email: str
+    password: str
+    full_name: Optional[str] = None
+
+
+# Driver schemas
+class DriverProfileOut(BaseModel):
+    id: int
+    userId: int
+    vehicleType: Optional[str] = None
+    vehiclePlate: Optional[str] = None
+    phone: Optional[str] = None
+    isAvailable: bool = True
+
+
+class DriverProfileCreate(BaseModel):
+    email: str
+    password: str
+    fullName: Optional[str] = None
+    vehicleType: Optional[str] = None
+    vehiclePlate: Optional[str] = None
+    phone: Optional[str] = None
+
+
+class DriverProfileUpdate(BaseModel):
+    vehicleType: Optional[str] = None
+    vehiclePlate: Optional[str] = None
+    phone: Optional[str] = None
+    isAvailable: Optional[bool] = None
+
+
+class AssignDriverRequest(BaseModel):
+    driverId: int
+
+
+class MarkCollectedRequest(BaseModel):
+    proofUrl: Optional[str] = None

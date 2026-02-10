@@ -32,4 +32,30 @@ async def get_history(
     return rows, int(total or 0)
 
 
+async def credit_wallet_for_collection(
+    session: AsyncSession,
+    user_id: int,
+    collection_id: int,
+    amount_cents: int,
+    note: str | None = None,
+) -> WalletTransaction:
+    """
+    Link a completed collection to a wallet credit.
+
+    Intended flow (not fully implemented end-to-end yet):
+    1) A Collection is marked as completed/approved.
+    2) A Claim may be created and approved for that Collection (if needed).
+    3) This helper is called to add a positive Transaction to the user's wallet.
+    """
+    txn = WalletTransaction(
+        user_id=user_id,
+        kind="collection_credit",
+        amount_cents=int(amount_cents),
+        note=note or f"Credit for collection #{collection_id}",
+    )
+    session.add(txn)
+    await session.commit()
+    await session.refresh(txn)
+    return txn
+
 

@@ -23,6 +23,20 @@ export const handlers = [
       expiresIn: 3600,
     })
   }),
+  http.get(`${API}/auth/me`, async ({ request }) => {
+    const auth = request.headers.get('Authorization')
+    if (!auth || !auth.startsWith('Bearer ')) {
+      return new HttpResponse(null, { status: 401 })
+    }
+    return HttpResponse.json({
+      id: 1,
+      email: 'test@example.com',
+      full_name: 'Test User',
+      is_active: true,
+      is_admin: false,
+      is_driver: false,
+    })
+  }),
 
   // Wallet
   http.get(`${API}/wallet/balance`, async () => {

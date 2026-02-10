@@ -11,9 +11,9 @@ export interface WalletBalanceResponse {
 }
 
 export interface Transaction {
-  id: string
+  id: number
   ts: string
-  kind: 'return' | 'redeem' | 'donation' | 'adjustment'
+  kind: string
   amountCents: number
   note?: string
 }
@@ -37,9 +37,9 @@ export interface ClaimSubmitResponse {
 }
 
 export interface ReturnPoint {
-  id: string
+  id: number
   name: string
-  type: 'RVM' | 'Manual'
+  type: string
   eircode?: string
   retailer?: string
   lat: number
@@ -49,6 +49,76 @@ export interface ReturnPoint {
 export interface ReturnPointsResponse {
   items: ReturnPoint[]
   total: number
+}
+
+// Phase 3: Subscriptions & Collections
+export type SubscriptionStatus =
+  | 'active'
+  | 'paused'
+  | 'cancelled'
+  | 'inactive'
+  | (string & {}) // allow forward-compatible statuses
+
+export interface Subscription {
+  status: SubscriptionStatus
+  planCode: string | null
+  startDate: string | null // ISO date
+  endDate: string | null // ISO date or null
+  currentPeriodStart?: string | null // ISO date
+  currentPeriodEnd?: string | null // ISO date
+}
+
+export interface CollectionSlot {
+  weekday: number // 0-6 (backend returns a single preferred weekly slot)
+  startTime: string // "HH:MM:SS" or "HH:MM"
+  endTime: string
+  preferredReturnPointId: number | null
+  frequency: 'weekly' | 'fortnightly' | 'every_2_weeks' | 'monthly'
+  enabled?: boolean
+}
+
+export interface Collection {
+  id: number
+  userId: number
+  scheduledAt: string // ISO datetime
+  returnPointId: number
+  status: string
+  bagCount?: number
+  notes?: string | null
+  driverId?: number | null
+  proofUrl?: string | null
+  createdAt: string
+  updatedAt: string
+}
+
+export interface CollectionsResponse {
+  items: Collection[]
+  total: number
+  page: number
+  pageSize: number
+}
+
+export interface DriverProfile {
+  id: number
+  userId: number
+  vehicleType: string | null
+  vehiclePlate: string | null
+  phone: string | null
+  isAvailable: boolean
+}
+
+export interface DriverCollection {
+  id: number
+  userId: number
+  scheduledAt: string
+  returnPointId: number
+  status: string
+  bagCount: number
+  notes: string | null
+  driverId: number | null
+  proofUrl: string | null
+  createdAt: string
+  updatedAt: string
 }
 
 export interface PendingClaimItem {

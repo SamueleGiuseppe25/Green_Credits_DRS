@@ -3,10 +3,12 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from .routers import auth, wallet, claims, return_points, simulate, healthz
-from .routers import subscriptions, collection_slots, collections
-from .services.db import engine
+from .routers import subscriptions, collection_slots, collections, admin, users
+from .routers import payments, stripe_webhooks, drivers
+from .services.db import engine, SessionLocal
 from .config import get_settings
 from .routers import dev_utils
+from .services.seed import seed_demo_wallet_transactions
 
 
 logging.basicConfig(level=logging.INFO)
@@ -38,6 +40,11 @@ def create_app() -> FastAPI:
     app.include_router(return_points.router, prefix="/return-points", tags=["ReturnPoints"])
     app.include_router(simulate.router, prefix="/simulate", tags=["Simulator"])
     app.include_router(healthz.router, tags=["Health"])  # /health and /healthz
+    app.include_router(admin.router)  # admin-only
+    app.include_router(payments.router)
+    app.include_router(stripe_webhooks.router)
+    app.include_router(users.router, prefix="/users", tags=["Users"])
+    app.include_router(drivers.router, prefix="/drivers", tags=["Drivers"])
 
     @app.get("/")
     async def root():
@@ -54,6 +61,15 @@ def create_app() -> FastAPI:
             except Exception as exc:  # pragma: no cover - best-effort log
                 logger.warning("DB not reachable at startup: %s", exc)
 
+        # Seed demo data (best-effort; non-fatal on failure)
+        if SessionLocal is not None:
+            try:
+                async with SessionLocal() as session:
+                    await seed_demo_wallet_transactions(session)
+                logger.info("Demo wallet seed done")
+            except Exception as exc:  # pragma: no cover
+                logger.warning("Seed failed: %s", exc)
+
     # Optional dev utilities
     settings = get_settings()
     if settings.mock_auth:
@@ -63,5 +79,10 @@ def create_app() -> FastAPI:
 
 
 app = create_app()
+
+settings = get_settings()
+logger.info("Stripe secret present? %s", bool(getattr(settings, "stripe_secret_key", None)))
+logger.info("Raw env STRIPE_SECRET_KEY present? %s", bool(__import__("os").environ.get("STRIPE_SECRET_KEY")))
+
 
 

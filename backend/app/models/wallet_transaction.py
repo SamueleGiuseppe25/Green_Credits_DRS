@@ -13,7 +13,7 @@ class WalletTransaction(Base):
     user_id: Mapped[int] = mapped_column(nullable=False, index=True)
 
     ts: Mapped[datetime] = mapped_column(DateTime, nullable=False, default=lambda: datetime.utcnow(), index=True)
-    kind: Mapped[str] = mapped_column(String(16), nullable=False)
+    kind: Mapped[str] = mapped_column(String(32), nullable=False)
     amount_cents: Mapped[int] = mapped_column(Integer, nullable=False)
     note: Mapped[str | None] = mapped_column(String(255), nullable=True)
 
