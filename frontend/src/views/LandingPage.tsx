@@ -12,7 +12,6 @@ import {
   CreditCard,
   ArrowRight,
   Check,
-  ImageIcon,
   Mail,
   Users,
   MapPin,
@@ -75,12 +74,12 @@ export const LandingPage: React.FC = () => {
               </p>
             </div>
 
-            {/* Image placeholder */}
             <div className="flex items-center justify-center">
-              <div className="w-full aspect-video rounded-2xl border-2 border-dashed border-gray-300 dark:border-gray-600 bg-gray-100 dark:bg-gray-800 flex flex-col items-center justify-center gap-3 text-gray-400 dark:text-gray-500">
-                <ImageIcon className="h-12 w-12" />
-                <span className="text-sm font-medium">Hero image</span>
-              </div>
+              <img
+                src="/images/hero-recycling.jpg"
+                alt="Bottles packed for recycling"
+                className="w-full aspect-video rounded-2xl object-cover"
+              />
             </div>
           </div>
         </div>
@@ -291,16 +290,19 @@ export const LandingPage: React.FC = () => {
                 title: 'How Bottle Recycling Saves Energy',
                 excerpt: 'Recycling a single aluminium can saves enough energy to power a TV for three hours. Learn how your collections make a real difference.',
                 date: 'Feb 5, 2026',
+                image: '/images/blog-recycling-energy.jpg',
               },
               {
                 title: 'GreenCredits Launch: Our Story',
                 excerpt: 'From a university project to a working platform — here\'s how GreenCredits came to be and where we\'re headed next.',
                 date: 'Jan 28, 2026',
+                image: '/images/blog-our-story.jpg',
               },
               {
                 title: '5 Ways to Reduce Household Waste',
                 excerpt: 'Small changes at home can have a big impact. Here are five practical tips to cut down on waste starting today.',
                 date: 'Jan 15, 2026',
+                image: '/images/blog-reduce-waste.jpg',
               },
             ].map((post, i) => (
               <a
@@ -308,9 +310,7 @@ export const LandingPage: React.FC = () => {
                 href="#"
                 className="group rounded-xl overflow-hidden bg-white dark:bg-gray-800 shadow-sm hover:shadow-md transition-shadow border border-gray-100 dark:border-gray-700"
               >
-                <div className="h-48 bg-gray-200 dark:bg-gray-700 flex items-center justify-center">
-                  <ImageIcon className="h-10 w-10 text-gray-400 dark:text-gray-500" />
-                </div>
+                <img src={post.image} alt={post.title} className="h-48 w-full object-cover" />
                 <div className="p-5">
                   <time className="text-xs text-gray-500 dark:text-gray-400">{post.date}</time>
                   <h3 className="font-semibold text-gray-900 dark:text-white mt-1 mb-2 group-hover:text-emerald-600 transition-colors">
