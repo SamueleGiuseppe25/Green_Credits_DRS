@@ -21,6 +21,7 @@ class Collection(Base):
 
     driver_id: Mapped[int | None] = mapped_column(Integer, nullable=True, index=True)
     proof_url: Mapped[str | None] = mapped_column(String(512), nullable=True)
+    voucher_amount_cents: Mapped[int | None] = mapped_column(Integer, nullable=True)
 
     is_archived: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False, server_default="0")
 

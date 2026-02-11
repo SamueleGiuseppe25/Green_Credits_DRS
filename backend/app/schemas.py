@@ -69,6 +69,7 @@ class Collection(BaseModel):
     notes: Optional[str] = None
     driverId: Optional[int] = None
     proofUrl: Optional[str] = None
+    voucherAmountCents: Optional[int] = None
     createdAt: datetime
     updatedAt: datetime
 
@@ -129,6 +130,7 @@ class AssignDriverRequest(BaseModel):
 
 class MarkCollectedRequest(BaseModel):
     proofUrl: Optional[str] = None
+    voucherAmountCents: int
 
 
 # Driver earnings / payouts (ledger-style)

@@ -4,7 +4,7 @@ import { useAuth } from '../context/AuthContext'
 import toast from 'react-hot-toast'
 
 export const LoginPage: React.FC = () => {
-  const { login, isAuthenticated, loading } = useAuth()
+  const { login, isAuthenticated, loading, user } = useAuth()
   const navigate = useNavigate()
   const location = useLocation() as { state?: { from?: Location } }
   const [email, setEmail] = useState('')
@@ -15,10 +15,11 @@ export const LoginPage: React.FC = () => {
   // Redirect if already authenticated
   useEffect(() => {
     if (!loading && isAuthenticated) {
-      const redirectTo = (location.state?.from as any)?.pathname || '/wallet'
+      const defaultDest = user?.is_admin ? '/admin' : user?.is_driver ? '/driver' : '/wallet'
+      const redirectTo = (location.state?.from as any)?.pathname || defaultDest
       navigate(redirectTo, { replace: true })
     }
-  }, [isAuthenticated, loading, navigate, location])
+  }, [isAuthenticated, loading, navigate, location, user])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -26,9 +27,7 @@ export const LoginPage: React.FC = () => {
     setSubmitting(true)
     try {
       await login(email, password)
-      // Redirect to the page user tried to access, or default to /wallet
-      const redirectTo = (location.state?.from as any)?.pathname || '/wallet'
-      navigate(redirectTo, { replace: true })
+      // Redirect is handled by the effect once user info is loaded.
     } catch (err: any) {
       const msg = err?.message || 'Login failed'
       setError(msg)

@@ -58,11 +58,26 @@ export function fetchDriverCollections(status?: string): Promise<DriverCollectio
   return driverFetch<DriverCollection[]>(`/drivers/me/collections${qs}`)
 }
 
-export function markCollected(id: number, proofUrl?: string): Promise<DriverCollection> {
+export function markCollected(id: number, voucherAmountCents: number, proofUrl?: string): Promise<DriverCollection> {
   return driverFetch<DriverCollection>(`/drivers/me/collections/${id}/mark-collected`, {
     method: 'PATCH',
-    body: JSON.stringify({ proofUrl: proofUrl || null }),
+    body: JSON.stringify({ proofUrl: proofUrl || null, voucherAmountCents }),
   })
+}
+
+export async function uploadProofImage(file: File): Promise<{ url: string }> {
+  const token = getToken()
+  const form = new FormData()
+  form.append('image', file)
+
+  const res = await fetch(`${API_BASE_URL}/api/uploads/proof`, {
+    method: 'POST',
+    headers: {
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+    body: form,
+  })
+  return handleResponse<{ url: string }>(res)
 }
 
 export function fetchDriverEarnings(): Promise<DriverEarningsBalance> {

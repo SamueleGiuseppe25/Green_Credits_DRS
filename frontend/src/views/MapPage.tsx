@@ -1,10 +1,12 @@
 import React from 'react'
 import { useReturnPoints } from '../hooks/useReturnPoints'
+import { ReturnPointsMap } from '../components/ReturnPointsMap'
 import { ReturnPoint } from '../types/api'
 
 export const MapPage: React.FC = () => {
   const { data, isLoading, isError } = useReturnPoints({ pageSize: 500 })
   const items = data?.items ?? []
+  const [selectedId, setSelectedId] = React.useState<number | null>(null)
 
   return (
     <section>
@@ -15,6 +17,13 @@ export const MapPage: React.FC = () => {
       {isLoading && <div className="text-sm opacity-70">Loading return points…</div>}
       {isError && <div className="text-sm text-red-600">Could not load return points.</div>}
       {!isLoading && !isError && items.length === 0 && <div className="text-sm opacity-70">No return points.</div>}
+
+      {!isLoading && !isError && items.length > 0 && (
+        <div className="mb-4 h-[400px] w-full border rounded-md overflow-hidden">
+          <ReturnPointsMap points={items} selectedPointId={selectedId} onSelectPoint={setSelectedId} />
+        </div>
+      )}
+
       {!isLoading && !isError && items.length > 0 && (
         <ul className="divide-y border rounded-md overflow-hidden">
           {items.map((rp: ReturnPoint) => {

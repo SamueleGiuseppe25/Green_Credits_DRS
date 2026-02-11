@@ -83,6 +83,7 @@ async def list_collections(
             "notes": c.notes,
             "driver_id": c.driver_id,
             "proof_url": c.proof_url,
+            "voucher_amount_cents": c.voucher_amount_cents,
         }
         for c in rows
     ]
@@ -112,6 +113,7 @@ async def update_collection_status(
         "notes": col.notes,
         "driverId": col.driver_id,
         "proofUrl": col.proof_url,
+        "voucherAmountCents": col.voucher_amount_cents,
         "createdAt": col.created_at,
         "updatedAt": col.updated_at,
     }
@@ -181,6 +183,7 @@ async def assign_driver_to_collection(
         "notes": col.notes,
         "driverId": col.driver_id,
         "proofUrl": col.proof_url,
+        "voucherAmountCents": col.voucher_amount_cents,
         "createdAt": col.created_at,
         "updatedAt": col.updated_at,
     }

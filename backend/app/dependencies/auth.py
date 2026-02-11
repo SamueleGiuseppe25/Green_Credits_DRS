@@ -62,6 +62,10 @@ async def require_active_subscription(
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db_session),
 ) -> User:
+    # Admins and drivers do not need a subscription for the MVP.
+    if getattr(user, "is_admin", False) or getattr(user, "is_driver", False):
+        return user
+
     ok = await is_subscription_active(db, user.id)
     if not ok:
         raise HTTPException(

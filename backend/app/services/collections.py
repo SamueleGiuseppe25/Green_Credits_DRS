@@ -6,6 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..models import Collection, CollectionSlot, Driver, WalletTransaction
 from .wallet import credit_wallet_for_collection
+from pathlib import Path
 
 SERVICE_START = time_cls(8, 0)
 SERVICE_END = time_cls(20, 0)
@@ -134,10 +135,26 @@ async def admin_transition_status(session: AsyncSession, id_: int, new_status: s
             )
         )
         if int(existing_credit or 0) == 0:
-            amount_cents = col.bag_count * 500  # 5 EUR per bag
-            await credit_wallet_for_collection(
-                session, col.user_id, col.id, amount_cents
-            )
+            amount_cents = int(col.voucher_amount_cents or 0)
+            if amount_cents > 0:
+                proof_ref = "-"
+                if col.proof_url:
+                    proof_ref = Path(col.proof_url).name or "-"
+                    if len(proof_ref) > 64:
+                        proof_ref = proof_ref[:61] + "..."
+                note = (
+                    f"Credit for collection #{col.id} "
+                    f"(voucher €{amount_cents / 100:.2f}) "
+                    f"driver_id={col.driver_id or '-'} "
+                    f"proof={proof_ref}"
+                )
+                await credit_wallet_for_collection(
+                    session,
+                    col.user_id,
+                    col.id,
+                    amount_cents,
+                    note=note,
+                )
 
     await session.commit()
     await session.refresh(col)
@@ -173,7 +190,6 @@ async def delete_canceled(session: AsyncSession, user_id: int, id_: int) -> tupl
     if col.status != "canceled":
         return False, "not_canceled"
     col.is_archived = True
-    await session.commit()
     await session.commit()
     return True, None
 

@@ -1,14 +1,17 @@
 import logging
+from pathlib import Path
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from starlette.staticfiles import StaticFiles
 
 from .routers import auth, wallet, claims, return_points, simulate, healthz
 from .routers import subscriptions, collection_slots, collections, admin, users
-from .routers import payments, stripe_webhooks, drivers
+from .routers import payments, stripe_webhooks, drivers, uploads
 from .services.db import engine, SessionLocal
 from .config import get_settings
 from .routers import dev_utils
-from .services.seed import seed_demo_wallet_transactions
+from .services.seed import seed_demo_wallet_transactions, seed_return_points
 
 
 logging.basicConfig(level=logging.INFO)
@@ -31,6 +34,11 @@ def create_app() -> FastAPI:
         allow_headers=["*"],
     )
 
+    # Local file uploads (MVP): serve uploaded files from /uploads/*
+    uploads_dir = Path(__file__).resolve().parent.parent / "uploads"
+    uploads_dir.mkdir(parents=True, exist_ok=True)
+    app.mount("/uploads", StaticFiles(directory=str(uploads_dir)), name="uploads")
+
     app.include_router(auth.router, prefix="/auth", tags=["Auth"])
     app.include_router(wallet.router, prefix="/wallet", tags=["Wallet"])
     app.include_router(subscriptions.router, prefix="/subscriptions", tags=["Subscriptions"])
@@ -45,6 +53,7 @@ def create_app() -> FastAPI:
     app.include_router(stripe_webhooks.router)
     app.include_router(users.router, prefix="/users", tags=["Users"])
     app.include_router(drivers.router, prefix="/drivers", tags=["Drivers"])
+    app.include_router(uploads.router, prefix="/api/uploads", tags=["Uploads"])
 
     @app.get("/")
     async def root():
@@ -65,6 +74,7 @@ def create_app() -> FastAPI:
         if SessionLocal is not None:
             try:
                 async with SessionLocal() as session:
+                    await seed_return_points(session)
                     await seed_demo_wallet_transactions(session)
                 logger.info("Demo wallet seed done")
             except Exception as exc:  # pragma: no cover

@@ -70,6 +70,7 @@ async def mark_collected(
     collection_id: int,
     driver_user_id: int,
     proof_url: str | None = None,
+    voucher_amount_cents: int | None = None,
 ) -> tuple[Collection | None, str | None]:
     driver = await get_driver_by_user_id(session, driver_user_id)
     if driver is None:
@@ -87,9 +88,14 @@ async def mark_collected(
     if col.status != "assigned":
         return col, f"Cannot mark as collected: current status is '{col.status}'"
 
+    amt = int(voucher_amount_cents or 0)
+    if amt <= 0 or amt > 50_000:
+        return col, "Voucher amount must be > 0 and <= 50000 cents"
+
     col.status = "collected"
     if proof_url:
         col.proof_url = proof_url
+    col.voucher_amount_cents = amt
     await create_earning(session, driver.id, col.id, col.bag_count or 1)
     await session.commit()
     await session.refresh(col)

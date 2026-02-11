@@ -1,10 +1,12 @@
 import React, { useEffect, useState } from 'react'
 import toast from 'react-hot-toast'
+import { API_BASE_URL } from '../lib/api'
 import {
   fetchDriverProfile,
   updateDriverProfile,
   fetchDriverCollections,
   markCollected,
+  uploadProofImage,
   fetchDriverEarnings,
   fetchDriverPayouts,
 } from '../lib/driverApi'
@@ -28,8 +30,30 @@ export const DriverPage: React.FC = () => {
 
   // Mark collected modal
   const [markingId, setMarkingId] = useState<number | null>(null)
-  const [proofUrl, setProofUrl] = useState('')
-  const [markingLoading, setMarkingLoading] = useState(false)
+  const [proofFile, setProofFile] = useState<File | null>(null)
+  const [proofPreviewUrl, setProofPreviewUrl] = useState<string | null>(null)
+  const [voucherEuros, setVoucherEuros] = useState<string>('')
+  const [markingPhase, setMarkingPhase] = useState<'idle' | 'uploading' | 'submitting'>('idle')
+
+  useEffect(() => {
+    if (!proofFile) {
+      setProofPreviewUrl((prev) => {
+        if (prev) URL.revokeObjectURL(prev)
+        return null
+      })
+      return
+    }
+
+    const next = URL.createObjectURL(proofFile)
+    setProofPreviewUrl((prev) => {
+      if (prev) URL.revokeObjectURL(prev)
+      return next
+    })
+
+    return () => {
+      URL.revokeObjectURL(next)
+    }
+  }, [proofFile])
 
   useEffect(() => {
     setProfileLoading(true)
@@ -105,13 +129,33 @@ export const DriverPage: React.FC = () => {
   }
 
   const handleMarkCollected = async () => {
-    if (!markingId) return
-    setMarkingLoading(true)
+    if (markingId === null) return
     try {
-      await markCollected(markingId, proofUrl || undefined)
+      if (!proofFile) {
+        toast.error('Please select a proof image (JPG/PNG).')
+        return
+      }
+
+      const eur = Number(voucherEuros)
+      if (!Number.isFinite(eur) || eur <= 0) {
+        toast.error('Please enter a valid voucher total (> €0).')
+        return
+      }
+      if (eur > 500) {
+        toast.error('Voucher total must be ≤ €500.')
+        return
+      }
+      const voucherAmountCents = Math.round(eur * 100)
+
+      setMarkingPhase('uploading')
+      const { url } = await uploadProofImage(proofFile)
+
+      setMarkingPhase('submitting')
+      await markCollected(markingId, voucherAmountCents, url)
       toast.success('Collection marked as collected')
       setMarkingId(null)
-      setProofUrl('')
+      setProofFile(null)
+      setVoucherEuros('')
       // Refresh collections
       const status = statusFilter === 'all' ? undefined : statusFilter
       const rows = await fetchDriverCollections(status)
@@ -121,7 +165,7 @@ export const DriverPage: React.FC = () => {
     } catch (e: any) {
       toast.error(e?.message || 'Failed to mark collected')
     } finally {
-      setMarkingLoading(false)
+      setMarkingPhase('idle')
     }
   }
 
@@ -253,7 +297,12 @@ export const DriverPage: React.FC = () => {
                     </td>
                     <td className="p-2">
                       {c.proofUrl ? (
-                        <a href={c.proofUrl} target="_blank" rel="noreferrer" className="text-blue-600 underline text-xs">
+                        <a
+                          href={c.proofUrl.startsWith('/') ? `${API_BASE_URL}${c.proofUrl}` : c.proofUrl}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="text-blue-600 underline text-xs"
+                        >
                           View
                         </a>
                       ) : (
@@ -263,7 +312,11 @@ export const DriverPage: React.FC = () => {
                     <td className="p-2">
                       {c.status === 'assigned' && (
                         <button
-                          onClick={() => { setMarkingId(c.id); setProofUrl('') }}
+                          onClick={() => {
+                            setMarkingId(c.id)
+                            setProofFile(null)
+                            setVoucherEuros('')
+                          }}
                           className="text-sm px-3 py-1 rounded bg-emerald-600 text-white hover:bg-emerald-700"
                         >
                           Mark Collected
@@ -283,32 +336,73 @@ export const DriverPage: React.FC = () => {
         <>
           <div
             className="fixed inset-0 bg-black/40 z-40"
-            onClick={() => { if (!markingLoading) setMarkingId(null) }}
+            onClick={() => {
+              if (markingPhase === 'idle') {
+                setMarkingId(null)
+                setProofFile(null)
+                setVoucherEuros('')
+              }
+            }}
           />
           <div className="fixed inset-0 flex items-center justify-center z-50 p-4">
             <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6 w-full max-w-md">
               <h3 className="font-semibold mb-3">Mark Collection #{markingId} as Collected</h3>
-              <label className="block text-sm opacity-70 mb-1">Proof URL (simulated image upload)</label>
+              <label className="block text-sm opacity-70 mb-1">Voucher Total (€) *</label>
               <input
-                className="w-full border rounded px-2 py-1.5 mb-4 bg-transparent dark:bg-gray-900"
-                value={proofUrl}
-                onChange={(e) => setProofUrl(e.target.value)}
-                placeholder="https://example.com/proof-photo.jpg"
+                type="number"
+                inputMode="decimal"
+                min={0.01}
+                max={500}
+                step={0.01}
+                className="w-full border rounded px-2 py-1.5 mb-3 bg-transparent dark:bg-gray-900"
+                disabled={markingPhase !== 'idle'}
+                value={voucherEuros}
+                onChange={(e) => setVoucherEuros(e.target.value)}
+                placeholder="e.g. 12.50"
               />
+              <label className="block text-sm opacity-70 mb-1">Proof image (JPG/PNG, max 5MB)</label>
+              <input
+                type="file"
+                accept="image/jpeg,image/png"
+                className="w-full border rounded px-2 py-1.5 mb-3 bg-transparent dark:bg-gray-900"
+                disabled={markingPhase !== 'idle'}
+                onChange={(e) => {
+                  const f = e.target.files?.[0] || null
+                  setProofFile(f)
+                }}
+              />
+              {proofPreviewUrl && (
+                <div className="mb-4">
+                  <div className="text-xs opacity-70 mb-1">Preview</div>
+                  <img
+                    src={proofPreviewUrl}
+                    alt="Proof preview"
+                    className="w-full max-h-64 object-contain rounded border bg-white"
+                  />
+                </div>
+              )}
               <div className="flex gap-2 justify-end">
                 <button
-                  onClick={() => setMarkingId(null)}
-                  disabled={markingLoading}
+                  onClick={() => {
+                    setMarkingId(null)
+                    setProofFile(null)
+                    setVoucherEuros('')
+                  }}
+                  disabled={markingPhase !== 'idle'}
                   className="text-sm px-3 py-1 rounded border hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-50"
                 >
                   Cancel
                 </button>
                 <button
                   onClick={handleMarkCollected}
-                  disabled={markingLoading}
+                  disabled={markingPhase !== 'idle'}
                   className="text-sm px-4 py-1 rounded bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-50"
                 >
-                  {markingLoading ? 'Submitting...' : 'Confirm'}
+                  {markingPhase === 'uploading'
+                    ? 'Uploading...'
+                    : markingPhase === 'submitting'
+                      ? 'Submitting...'
+                      : 'Confirm'}
                 </button>
               </div>
             </div>

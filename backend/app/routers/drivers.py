@@ -88,6 +88,7 @@ async def get_my_collections(
             "notes": c.notes,
             "driverId": c.driver_id,
             "proofUrl": c.proof_url,
+            "voucherAmountCents": c.voucher_amount_cents,
             "createdAt": c.created_at,
             "updatedAt": c.updated_at,
         }
@@ -102,7 +103,13 @@ async def mark_collection_collected(
     user=Depends(require_driver),
     session: AsyncSession = Depends(get_db_session),
 ):
-    col, err = await mark_collected(session, id, user.id, payload.proofUrl)
+    col, err = await mark_collected(
+        session,
+        id,
+        user.id,
+        payload.proofUrl,
+        payload.voucherAmountCents,
+    )
     if col is None and err is None:
         raise HTTPException(status_code=404, detail="Collection not found")
     if col is None:
@@ -119,6 +126,7 @@ async def mark_collection_collected(
         "notes": col.notes,
         "driverId": col.driver_id,
         "proofUrl": col.proof_url,
+        "voucherAmountCents": col.voucher_amount_cents,
         "createdAt": col.created_at,
         "updatedAt": col.updated_at,
     }

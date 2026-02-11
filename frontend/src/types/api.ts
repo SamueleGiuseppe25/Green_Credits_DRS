@@ -87,6 +87,7 @@ export interface Collection {
   notes?: string | null
   driverId?: number | null
   proofUrl?: string | null
+  voucherAmountCents?: number | null
   createdAt: string
   updatedAt: string
 }
@@ -117,6 +118,7 @@ export interface DriverCollection {
   notes: string | null
   driverId: number | null
   proofUrl: string | null
+  voucherAmountCents?: number | null
   createdAt: string
   updatedAt: string
 }

@@ -18,15 +18,16 @@ import {
 } from 'lucide-react'
 
 export const LandingPage: React.FC = () => {
-  const { isAuthenticated, loading } = useAuth()
+  const { isAuthenticated, loading, user } = useAuth()
   const navigate = useNavigate()
   const [email, setEmail] = useState('')
 
   useEffect(() => {
     if (!loading && isAuthenticated) {
-      navigate('/wallet', { replace: true })
+      const dest = user?.is_admin ? '/admin' : user?.is_driver ? '/driver' : '/wallet'
+      navigate(dest, { replace: true })
     }
-  }, [isAuthenticated, loading, navigate])
+  }, [isAuthenticated, loading, navigate, user])
 
   const handleNewsletter = (e: React.FormEvent) => {
     e.preventDefault()

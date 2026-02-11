@@ -9,6 +9,10 @@ import markerIcon2x from 'leaflet/dist/images/marker-icon-2x.png'
 import markerIcon from 'leaflet/dist/images/marker-icon.png'
 import markerShadow from 'leaflet/dist/images/marker-shadow.png'
 
+// Leaflet's default icon URLs don't resolve correctly in bundlers unless overridden.
+// This fixes the common "broken marker icon" issue.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+delete (L.Icon.Default.prototype as any)._getIconUrl
 L.Icon.Default.mergeOptions({
   iconRetinaUrl: markerIcon2x,
   iconUrl: markerIcon,
@@ -120,6 +124,16 @@ export const ReturnPointsMap: React.FC<ReturnPointsMapProps> = ({
                     <div className="opacity-70">{rp.type}</div>
                     {rp.retailer && <div className="opacity-70">Retailer: {rp.retailer}</div>}
                     {rp.eircode && <div className="opacity-70">Eircode: {rp.eircode}</div>}
+                    <div className="pt-1">
+                      <a
+                        href={`https://www.google.com/maps?q=${rp.lat},${rp.lng}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-flex text-xs px-2 py-1 rounded border hover:bg-gray-100 dark:hover:bg-gray-700"
+                      >
+                        Open in Google Maps
+                      </a>
+                    </div>
                   </div>
                 </Popup>
               </Marker>

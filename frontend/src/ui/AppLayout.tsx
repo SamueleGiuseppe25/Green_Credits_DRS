@@ -4,6 +4,12 @@ import { useAuth } from '../context/AuthContext'
 import { Toaster } from 'react-hot-toast'
 import { Wallet, Ticket, Map as MapIcon, Recycle, Settings as SettingsIcon, Shield, Truck, Menu, X } from 'lucide-react'
 
+type SidebarNavItem = {
+  to: string
+  label: string
+  icon?: React.ReactNode
+}
+
 export const AppLayout: React.FC = () => {
   const { isAuthenticated, logout, user } = useAuth()
   const navigate = useNavigate()
@@ -29,6 +35,34 @@ export const AppLayout: React.FC = () => {
     })
   }
 
+  const isAdmin = Boolean(user?.is_admin)
+  const isDriver = Boolean(user?.is_driver) && !isAdmin // admin takes priority
+
+  const navItems: SidebarNavItem[] = React.useMemo(() => {
+    if (!isAuthenticated) {
+      return [{ to: '/login', label: 'Login' }]
+    }
+    if (isAdmin) {
+      return [
+        { to: '/admin', label: 'Admin Dashboard', icon: <Shield className="h-5 w-5" /> },
+        { to: '/map', label: 'Map', icon: <MapIcon className="h-5 w-5" /> },
+      ]
+    }
+    if (isDriver) {
+      return [
+        { to: '/driver', label: 'Driver Dashboard', icon: <Truck className="h-5 w-5" /> },
+        { to: '/map', label: 'Map', icon: <MapIcon className="h-5 w-5" /> },
+      ]
+    }
+    return [
+      { to: '/wallet', label: 'Wallet', icon: <Wallet className="h-5 w-5" /> },
+      { to: '/collections', label: 'Collections', icon: <Recycle className="h-5 w-5" /> },
+      { to: '/claims', label: 'Claims', icon: <Ticket className="h-5 w-5" /> },
+      { to: '/map', label: 'Map', icon: <MapIcon className="h-5 w-5" /> },
+      { to: '/settings', label: 'Settings', icon: <SettingsIcon className="h-5 w-5" /> },
+    ]
+  }, [isAdmin, isAuthenticated, isDriver])
+
   return (
     <div className="min-h-screen grid grid-cols-1 md:grid-cols-[auto_1fr] grid-rows-[3.5rem_1fr]">
       <aside className={`hidden md:flex row-span-2 bg-white/80 dark:bg-gray-800/60 border-r border-gray-200 dark:border-gray-700 backdrop-blur flex-col ${collapsed ? 'w-14' : 'w-64'} transition-[width] duration-200`}>
@@ -36,14 +70,9 @@ export const AppLayout: React.FC = () => {
           <Link to="/" title="GreenCredits">{collapsed ? 'GC' : 'GreenCredits'}</Link>
         </div>
         <nav className="px-2 space-y-1">
-          <NavItem to="/wallet" label="Wallet" collapsed={collapsed} icon={<Wallet className="h-5 w-5" />} />
-          <NavItem to="/claims" label="Claims" collapsed={collapsed} icon={<Ticket className="h-5 w-5" />} />
-          <NavItem to="/map" label="Map" collapsed={collapsed} icon={<MapIcon className="h-5 w-5" />} />
-          <NavItem to="/collections" label="Collections" collapsed={collapsed} icon={<Recycle className="h-5 w-5" />} />
-          <NavItem to="/settings" label="Settings" collapsed={collapsed} icon={<SettingsIcon className="h-5 w-5" />} />
-          {user?.is_admin ? <NavItem to="/admin" label="Admin" collapsed={collapsed} icon={<Shield className="h-5 w-5" />} /> : null}
-          {user?.is_driver ? <NavItem to="/driver" label="Driver" collapsed={collapsed} icon={<Truck className="h-5 w-5" />} /> : null}
-          {!isAuthenticated && <NavItem to="/login" label="Login" collapsed={collapsed} />}
+          {navItems.map((it) => (
+            <NavItem key={it.to} to={it.to} label={it.label} collapsed={collapsed} icon={it.icon} />
+          ))}
         </nav>
       </aside>
       <header className="md:col-start-2 bg-white/70 dark:bg-gray-800/60 border-b border-gray-200 dark:border-gray-700 backdrop-blur flex items-center px-4">
@@ -103,14 +132,9 @@ export const AppLayout: React.FC = () => {
               </button>
             </div>
             <nav className="space-y-1">
-              <NavItem to="/wallet" label="Wallet" icon={<Wallet className="h-5 w-5" />} onNavigate={() => setMobileOpen(false)} />
-              <NavItem to="/claims" label="Claims" icon={<Ticket className="h-5 w-5" />} onNavigate={() => setMobileOpen(false)} />
-              <NavItem to="/map" label="Map" icon={<MapIcon className="h-5 w-5" />} onNavigate={() => setMobileOpen(false)} />
-              <NavItem to="/collections" label="Collections" icon={<Recycle className="h-5 w-5" />} onNavigate={() => setMobileOpen(false)} />
-              <NavItem to="/settings" label="Settings" icon={<SettingsIcon className="h-5 w-5" />} onNavigate={() => setMobileOpen(false)} />
-              {user?.is_admin ? <NavItem to="/admin" label="Admin" icon={<Shield className="h-5 w-5" />} onNavigate={() => setMobileOpen(false)} /> : null}
-              {user?.is_driver ? <NavItem to="/driver" label="Driver" icon={<Truck className="h-5 w-5" />} onNavigate={() => setMobileOpen(false)} /> : null}
-              {!isAuthenticated && <NavItem to="/login" label="Login" onNavigate={() => setMobileOpen(false)} />}
+              {navItems.map((it) => (
+                <NavItem key={it.to} to={it.to} label={it.label} icon={it.icon} onNavigate={() => setMobileOpen(false)} />
+              ))}
             </nav>
           </div>
         </>

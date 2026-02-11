@@ -48,6 +48,7 @@ async def create_collection(
         "status": created.status,
         "bagCount": created.bag_count,
         "notes": created.notes,
+        "voucherAmountCents": created.voucher_amount_cents,
         "createdAt": created.created_at,
         "updatedAt": created.updated_at,
     }
@@ -71,6 +72,7 @@ async def list_my_collections(
             "status": r.status,
             "bagCount": r.bag_count,
             "notes": r.notes,
+            "voucherAmountCents": r.voucher_amount_cents,
             "createdAt": r.created_at,
             "updatedAt": r.updated_at,
         }
@@ -96,6 +98,7 @@ async def cancel_collection(
         "status": col.status,
         "bagCount": col.bag_count,
         "notes": col.notes,
+        "voucherAmountCents": col.voucher_amount_cents,
         "createdAt": col.created_at,
         "updatedAt": col.updated_at,
     }

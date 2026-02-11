@@ -57,5 +57,9 @@ docker/*.env
 !.env.example
 *.local
 
+# ---- Local uploads (keep .gitkeep) ----
+backend/uploads/*
+!backend/uploads/.gitkeep
+
 
 

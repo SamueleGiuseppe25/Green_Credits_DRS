@@ -6,7 +6,7 @@ import { apiFetch } from '../lib/api'
 import { createCheckoutSession } from '../lib/paymentsApi'
 
 export const SignupPage: React.FC = () => {
-  const { login, isAuthenticated, loading } = useAuth()
+  const { login, isAuthenticated, loading, user } = useAuth()
   const navigate = useNavigate()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -16,9 +16,10 @@ export const SignupPage: React.FC = () => {
 
   useEffect(() => {
     if (!loading && isAuthenticated) {
-      navigate('/wallet', { replace: true })
+      const dest = user?.is_admin ? '/admin' : user?.is_driver ? '/driver' : '/wallet'
+      navigate(dest, { replace: true })
     }
-  }, [isAuthenticated, loading, navigate])
+  }, [isAuthenticated, loading, navigate, user])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
