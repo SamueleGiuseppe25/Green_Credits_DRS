@@ -11,8 +11,7 @@ import markerShadow from 'leaflet/dist/images/marker-shadow.png'
 
 // Leaflet's default icon URLs don't resolve correctly in bundlers unless overridden.
 // This fixes the common "broken marker icon" issue.
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-delete (L.Icon.Default.prototype as any)._getIconUrl
+delete (L.Icon.Default.prototype as unknown as Record<string, unknown>)._getIconUrl
 L.Icon.Default.mergeOptions({
   iconRetinaUrl: markerIcon2x,
   iconUrl: markerIcon,
