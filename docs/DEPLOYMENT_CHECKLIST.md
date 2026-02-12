@@ -132,3 +132,55 @@ GitHub Actions (.github/workflows/deploy.yml)
 ```
 
 Vercel watches the GitHub repo separately and auto-deploys the frontend on push to main.
+
+---
+
+## Testing Your Deployment
+
+Replace `YOUR_BACKEND_URL` and `YOUR_FRONTEND_URL` with your actual Railway and Vercel URLs.
+
+### 1. GitHub Actions
+- Go to **GitHub → Actions** tab
+- Open the latest "Deploy to Railway" run
+- **✅ Pass:** All jobs (backend, frontend, deploy) are green
+- **❌ Fail:** Check logs for test failures or missing `RAILWAY_TOKEN` / `RAILWAY_SERVICE_ID`
+
+### 2. Backend (Railway)
+```bash
+# Health check (no DB)
+curl https://YOUR_BACKEND_URL/health
+
+# Expected: {"status":"ok"}
+
+# DB-aware health check
+curl https://YOUR_BACKEND_URL/healthz
+
+# Expected: {"status":"ok","db":"ok","version":"..."}
+```
+
+### 3. Frontend (Vercel)
+- Open `https://YOUR_FRONTEND_URL` in a browser
+- **✅ Pass:** Landing page loads with no blank screen or console errors
+- **✅ Pass:** Login/Register links work (even if you don't have an account yet)
+
+### 4. Frontend → Backend Connectivity
+- Open `https://YOUR_FRONTEND_URL`, open DevTools (F12) → Network tab
+- Try to **Register** or **Login**
+- **✅ Pass:** Requests to `YOUR_BACKEND_URL/auth/...` return 200/201 or expected error (e.g. 422)
+- **❌ CORS error:** Make sure `FRONTEND_URL` and `CORS_ORIGINS` in Railway include your Vercel URL exactly
+
+### 5. Quick curl test (from terminal)
+```powershell
+# Windows PowerShell
+$backend = "https://YOUR_BACKEND_URL"
+Invoke-RestMethod "$backend/health"
+Invoke-RestMethod "$backend/healthz"
+```
+
+### Common issues
+| Symptom | Fix |
+|---------|-----|
+| Deploy job fails with "RAILWAY_TOKEN not found" | Add `RAILWAY_TOKEN` and `RAILWAY_SERVICE_ID` in GitHub → Settings → Secrets |
+| 502 Bad Gateway on Railway | Check Railway logs; DB may not be ready or migrations failed |
+| CORS errors in browser | Update `CORS_ORIGINS` in Railway with exact Vercel URL (no trailing slash) |
+| Frontend shows "Failed to fetch" | Verify `VITE_API_BASE_URL` in Vercel points to Railway backend URL |
