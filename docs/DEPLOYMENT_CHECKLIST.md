@@ -39,8 +39,11 @@ Add these in GitHub repo → Settings → Secrets and variables → Actions:
 
 | Secret Name | Value | Source |
 |-------------|-------|--------|
-| `RAILWAY_TOKEN` | `railway_xxxxx...` | Railway project → Settings → Tokens → Create Token |
-| `RAILWAY_SERVICE_ID` | *(service UUID)* | Copy from Railway service URL: `railway.app/project/xxx/service/[THIS_PART]` |
+| `RAILWAY_TOKEN` | *(account token)* | **Important:** Use an **account-scoped** token from https://railway.com/account/tokens (not a project token). Project tokens cause "Unauthorized" in CI. |
+| `RAILWAY_SERVICE_ID` | *(service UUID)* | Copy from Railway service URL: `railway.app/project/xxx/service/[THIS_PART]` — must be the **service** ID, not project ID. |
+
+### Avoid duplicate deployments
+**Disable Railway’s built-in GitHub integration** so only GitHub Actions deploys. In Railway: Project → Settings → Integrations → disable or remove the GitHub connection. This prevents double deploys (Railway auto-deploy + our Actions workflow).
 
 ---
 
@@ -88,12 +91,13 @@ Add these in GitHub repo → Settings → Secrets and variables → Actions:
    - Set `DATABASE_URL` = `${{Postgres.DATABASE_URL}}` (use Reference button)
 5. Get credentials:
    - **Service ID:** Copy from URL `railway.app/project/xxx/service/[SERVICE_ID]`
-   - **Token:** Project Settings → Tokens → Create Token → Copy
+   - **Token:** Create an **account token** at https://railway.com/account/tokens (not project token — project tokens cause "Unauthorized" in GitHub Actions)
+6. **Disable duplicate deploys:** Project → Settings → Integrations → disable GitHub integration (Actions deploys on CI success)
 
 ### b. GitHub Secrets
 
 1. Go to GitHub repo → Settings → Secrets and variables → Actions
-2. Add `RAILWAY_TOKEN` (from step a.5)
+2. Add `RAILWAY_TOKEN` (account token from step a.5)
 3. Add `RAILWAY_SERVICE_ID` (from step a.5)
 
 ### c. Vercel Setup
@@ -125,11 +129,15 @@ After Vercel deploys:
 ```
 git push origin main
     ↓
-GitHub Actions (.github/workflows/deploy.yml)
-    ├─ Run backend tests (pytest)
-    ├─ Run frontend tests (lint, test, build)
-    └─ If pass → Deploy to Railway (bervProject/railway-deploy)
+CI workflow (.github/workflows/ci.yml) — runs tests
+    ├─ backend: pytest
+    └─ frontend: lint, test, build
+    ↓ (on success)
+Deploy workflow (.github/workflows/deploy.yml) — workflow_run trigger
+    └─ Deploy to Railway (bervProject/railway-deploy)
 ```
+
+Tests run only in CI. Deploy runs only after CI succeeds on main. Use **Actions → Deploy to Railway → Run workflow** for manual redeploy.
 
 Vercel watches the GitHub repo separately and auto-deploys the frontend on push to main.
 
@@ -141,9 +149,9 @@ Replace `YOUR_BACKEND_URL` and `YOUR_FRONTEND_URL` with your actual Railway and 
 
 ### 1. GitHub Actions
 - Go to **GitHub → Actions** tab
-- Open the latest "Deploy to Railway" run
-- **✅ Pass:** All jobs (backend, frontend, deploy) are green
-- **❌ Fail:** Check logs for test failures or missing `RAILWAY_TOKEN` / `RAILWAY_SERVICE_ID`
+- **CI workflow:** Backend + frontend jobs must pass (tests run here only)
+- **Deploy workflow:** Runs after CI succeeds on main; single deploy job
+- **❌ Unauthorized:** Use account token from https://railway.com/account/tokens (not project token)
 
 ### 2. Backend (Railway)
 ```bash
@@ -180,6 +188,7 @@ Invoke-RestMethod "$backend/healthz"
 ### Common issues
 | Symptom | Fix |
 |---------|-----|
+| Deploy job "Unauthorized" / "login with railway login" | Use **account token** from https://railway.com/account/tokens (project tokens do not work) |
 | Deploy job fails with "RAILWAY_TOKEN not found" | Add `RAILWAY_TOKEN` and `RAILWAY_SERVICE_ID` in GitHub → Settings → Secrets |
 | 502 Bad Gateway on Railway | Check Railway logs; DB may not be ready or migrations failed |
 | CORS errors in browser | Update `CORS_ORIGINS` in Railway with exact Vercel URL (no trailing slash) |

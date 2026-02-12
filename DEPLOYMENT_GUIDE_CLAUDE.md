@@ -109,6 +109,8 @@ railway run alembic current    # Check migration status
 - Select `greencredits` repository
 - Railway auto-detects `backend/Dockerfile`
 
+**Avoid duplicate deploys:** After setup, disable Railway’s built-in GitHub integration (Project → Settings → Integrations). Our GitHub Actions workflow deploys on CI success; Railway’s integration would deploy again on every push.
+
 **1.2 Add PostgreSQL:**
 - Right-click canvas → Database → PostgreSQL
 - Wait 30 seconds for provisioning
