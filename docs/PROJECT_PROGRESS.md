@@ -150,24 +150,79 @@ GreenCredits — subscription-based bottle collection platform. Users pay a mont
 - `frontend/public/images/` — 4 new JPG files
 - `frontend/src/views/LandingPage.tsx` — replaced placeholders with `<img>` tags
 
+### Feature D: Driver Earnings & Payouts MVP
+**Status:** ✅ Completed (Feb 10, 2026 — commit f7c2f38)
+**Implemented by:** Claude Code + Cursor
+
+**What was built:**
+- DB: `driver_earnings` + `driver_payouts` tables (migration 0009)
+- Backend: earnings/payouts endpoints in admin + driver routers
+- Backend: `EARNING_PER_BAG_CENTS = 50` (€0.50/bag)
+- Frontend: DriverPage earnings section, AdminPage payouts tab
+
+**Files:**
+- `backend/alembic/versions/0009_*.py` (migration)
+- `backend/app/models/driver_earning.py`, `backend/app/models/driver_payout.py`
+- `backend/app/services/driver_payouts.py` (new)
+- `backend/app/routers/admin.py`, `backend/app/routers/drivers.py`
+- `frontend/src/views/AdminPage.tsx`, `frontend/src/views/DriverPage.tsx` (updated)
+
+### Chore: Voucher Amount Workflow, Image Upload, Role-Based Nav, Return Points Seed
+**Status:** ✅ Completed (Feb 11, 2026 — commit 50a98c2)
+**Implemented by:** Claude Code + Cursor
+
+**What was built:**
+- Backend: real image upload (`POST /api/uploads/proof`, JPEG/PNG, 5MB max)
+- Backend: `voucher_amount_cents` on collections (migration 0010), admin "processed" uses real amount
+- Backend: skip subscription requirement for admin/driver roles
+- Backend: 18 Dublin return points seeded
+- Frontend: driver mark-collected modal with file upload + voucher amount
+- Frontend: role-based sidebar navigation
+- Created `FIXES_PLAN.md`
+
+**Files:**
+- `backend/alembic/versions/0010_*.py` (migration)
+- `backend/app/routers/uploads.py` (new)
+- `backend/app/services/seed.py`
+- `backend/app/dependencies/auth.py`
+- `frontend/src/ui/AppLayout.tsx`, `frontend/src/views/DriverPage.tsx` (updated)
+
+### Chore: Admin Metrics Enhancements, Wallet History, Deployment Prep
+**Status:** ✅ Completed (Feb 12, 2026 — commit 8e1549c)
+**Implemented by:** Claude Code + Cursor
+
+**What was built:**
+- Backend: enhanced `/admin/metrics` with financial metrics
+- Backend: wallet history with collection details
+- Frontend: MetricCard component with tooltips
+- Frontend: enhanced AdminPage + WalletPage
+- Created `DEPLOYMENT_GUIDE_CLAUDE.md`
+- Removed dev.db from repo
+
+**Files:**
+- `backend/app/routers/admin.py`, `backend/app/routers/wallet.py`
+- `frontend/src/components/MetricCard.tsx` (new)
+- `frontend/src/views/AdminPage.tsx`, `frontend/src/views/WalletPage.tsx` (updated)
+
 ---
 
 ## 🚧 In Progress
 
-None currently.
+### CI/CD Deployment Setup (Railway + Vercel)
+**Status:** 🚧 In Progress
+**Description:**
+- Create `.github/workflows/deploy.yml` with Railway deploy after tests
+- Create `docs/DEPLOYMENT_CHECKLIST.md` with all env vars
+- Configure Railway + Vercel projects (manual)
+- Set up Stripe webhooks for production
+**Files:**
+- `.github/workflows/deploy.yml` (new)
+- `docs/DEPLOYMENT_CHECKLIST.md` (new)
+- `docs/PROJECT_PROGRESS.md` (updated)
 
 ---
 
 ## 📋 Planned Features (Prioritized)
-
-### Feature D: Driver Payouts MVP
-**Priority:** High
-**Effort:** Medium
-**Dependencies:** Feature C (drivers — ✅ completed)
-**Description:**
-- driver_earnings table
-- payouts table
-- Admin payout reports and processing
 
 ---
 
@@ -232,7 +287,8 @@ cd frontend && npm run test
 **API Mocking:** MSW (Mock Service Worker)
 **Testing:** pytest + pytest-asyncio + httpx (backend), Vitest + React Testing Library + MSW (frontend)
 **CI:** GitHub Actions — lint, test, build for both backend and frontend
+**CI/CD:** GitHub Actions → Railway (backend), Vercel (frontend)
 
 ---
 
-Last Updated: Feb 10, 2026
+Last Updated: Feb 12, 2026
