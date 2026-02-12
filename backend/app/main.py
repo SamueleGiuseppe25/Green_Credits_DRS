@@ -27,7 +27,7 @@ def create_app() -> FastAPI:
         allow_origins=[
             "http://localhost:5173",  # Vite dev
             "http://localhost:3000",  # Next.js dev
-            # "https://YOUR-PROD-FRONTEND-DOMAIN",  # add your production domain here
+            "https://green-credits-drs.vercel.app", # add your production domain here
         ],
         allow_credentials=True,
         allow_methods=["*"],
