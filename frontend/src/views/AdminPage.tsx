@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import toast from 'react-hot-toast'
+import * as Tooltip from '@radix-ui/react-tooltip'
 import {
   fetchAdminCollections,
   fetchAdminMetrics,
@@ -15,6 +16,7 @@ import {
   type AdminDriver,
 } from '../lib/adminApi'
 import type { DriverEarningsBalance, DriverPayout } from '../types/api'
+import { MetricCard } from '../components/MetricCard'
 
 type Tab = 'collections' | 'drivers' | 'payouts'
 type StatusFilter = 'all' | 'scheduled' | 'assigned' | 'collected' | 'completed' | 'cancelled'
@@ -141,10 +143,7 @@ export const AdminPage: React.FC = () => {
     }
   }, [tab, drivers, selectedPayoutDriverId])
 
-  const euro = useMemo(() => {
-    const cents = metrics?.voucher_total_cents ?? 0
-    return `€${(cents / 100).toFixed(2)}`
-  }, [metrics])
+  const formatCents = (cents: number) => `€${(cents / 100).toFixed(2)}`
 
   // --- Actions ---
   const handleAssignDriver = async (collectionId: number) => {
@@ -234,13 +233,85 @@ export const AdminPage: React.FC = () => {
       {error && <div className="mb-4 text-sm text-red-600">{error}</div>}
 
       {/* Metrics */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 mb-6">
-        <Kpi title="Total users" value={metricsLoading ? '—' : String(metrics?.users_total ?? 0)} />
-        <Kpi title="Active subscriptions" value={metricsLoading ? '—' : String(metrics?.active_subscriptions ?? 0)} />
-        <Kpi title="Total collections" value={metricsLoading ? '—' : String(metrics?.collections_total ?? 0)} />
-        <Kpi title="Scheduled collections" value={metricsLoading ? '—' : String(metrics?.collections_scheduled ?? 0)} />
-        <Kpi title="Total voucher value" value={metricsLoading ? '—' : euro} />
-      </div>
+      <Tooltip.Provider delayDuration={200}>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 gap-3 mb-6">
+          <MetricCard
+            title="Total users"
+            value={metricsLoading ? '—' : String(metrics?.users_total ?? 0)}
+            tooltip="Total number of registered users in the platform"
+          />
+          <MetricCard
+            title="Active subscriptions"
+            value={metricsLoading ? '—' : String(metrics?.active_subscriptions ?? 0)}
+            tooltip="Number of users with currently active subscription plans (weekly, monthly, or yearly)"
+          />
+          <MetricCard
+            title="Total collections"
+            value={metricsLoading ? '—' : String(metrics?.collections_total ?? 0)}
+            tooltip="Total number of bottle collection requests created by users"
+          />
+          <MetricCard
+            title="Scheduled collections"
+            value={metricsLoading ? '—' : String(metrics?.collections_scheduled ?? 0)}
+            tooltip="Collections that are scheduled but not yet completed or cancelled"
+          />
+          <MetricCard
+            title="Total voucher value"
+            value={metricsLoading ? '—' : formatCents(metrics?.voucher_total_cents ?? 0)}
+            tooltip="Total value of all processed collection vouchers in euros"
+          />
+          <MetricCard
+            title="Recurring schedules"
+            value={metricsLoading ? '—' : String(metrics?.total_recurring_schedules ?? 0)}
+            tooltip="Number of active recurring collection schedules. Users can set up automatic weekly or fortnightly pickups"
+          />
+          <MetricCard
+            title="Subscription revenue"
+            value={metricsLoading ? '—' : formatCents(metrics?.total_subscription_revenue_cents ?? 0)}
+            tooltip="Total monthly recurring revenue from all active subscriptions combined"
+          />
+          <MetricCard
+            title="Driver earnings"
+            value={metricsLoading ? '—' : formatCents(metrics?.total_driver_earnings_cents ?? 0)}
+            tooltip="Total amount earned by drivers from completed collections"
+          />
+          <MetricCard
+            title="Driver payouts"
+            value={metricsLoading ? '—' : formatCents(metrics?.total_driver_payouts_cents ?? 0)}
+            tooltip="Total amount paid out to drivers"
+          />
+          <MetricCard
+            title="Available payout balance"
+            value={metricsLoading ? '—' : formatCents(metrics?.available_payout_balance_cents ?? 0)}
+            tooltip="Remaining balance available for driver payouts (Subscription revenue - Driver payouts)"
+          />
+        </div>
+      </Tooltip.Provider>
+
+      {/* Recurring Schedules summary */}
+      {metrics && (
+        <div className="border rounded-md p-4 mb-6">
+          <h2 className="font-semibold mb-2">Recurring Schedules</h2>
+          <div className="text-sm opacity-70 mb-2">
+            Total: <span className="font-medium text-foreground">{metrics.total_recurring_schedules ?? 0}</span> active
+            schedules
+          </div>
+          {metrics.recurring_schedules_by_frequency &&
+            Object.keys(metrics.recurring_schedules_by_frequency).length > 0 && (
+              <div className="flex flex-wrap gap-2">
+                {Object.entries(metrics.recurring_schedules_by_frequency).map(([freq, count]) => (
+                  <span
+                    key={freq}
+                    className="inline-flex items-center px-2 py-1 rounded bg-gray-100 dark:bg-gray-800 text-xs"
+                  >
+                    {freq}: {count}
+                  </span>
+                ))}
+              </div>
+            )}
+        </div>
+      )}
+
 
       {/* Tabs */}
       <div className="flex gap-1 border-b mb-4">
@@ -486,11 +557,15 @@ export const AdminPage: React.FC = () => {
                         <td className="p-2">{d.vehiclePlate || '—'}</td>
                         <td className="p-2">{d.phone || '—'}</td>
                         <td className="p-2">
-                          {d.isAvailable ? (
-                            <span className="text-xs text-green-600">Yes</span>
-                          ) : (
-                            <span className="text-xs text-red-600">No</span>
-                          )}
+                          <span
+                            className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs ${
+                              d.isAvailable
+                                ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
+                                : 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300'
+                            }`}
+                          >
+                            {d.isAvailable ? 'Available' : 'Unavailable'}
+                          </span>
                         </td>
                       </tr>
                     ))}
@@ -641,13 +716,6 @@ export const AdminPage: React.FC = () => {
     </section>
   )
 }
-
-const Kpi: React.FC<{ title: string; value: string }> = ({ title, value }) => (
-  <div className="border rounded-md p-3">
-    <div className="text-xs opacity-70">{title}</div>
-    <div className="text-lg font-semibold">{value}</div>
-  </div>
-)
 
 const TabButton: React.FC<{ active: boolean; onClick: () => void; children: React.ReactNode }> = ({ active, onClick, children }) => (
   <button

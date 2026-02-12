@@ -4,7 +4,15 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from pydantic import BaseModel
 
 from ..dependencies.auth import require_admin
-from ..models import Collection, Subscription, User, WalletTransaction, Driver
+from ..models import (
+    Collection,
+    CollectionSlot,
+    Driver,
+    DriverEarning,
+    DriverPayout,
+    Subscription,
+    User,
+)
 from ..services.collections import admin_transition_status, assign_driver as svc_assign_driver
 from ..services.drivers import create_driver as svc_create_driver, list_drivers as svc_list_drivers
 from ..services.driver_payouts import (
@@ -32,6 +40,24 @@ async def ping():
     return {"status": "ok"}
 
 
+PLAN_PRICES = {"weekly": 499, "monthly": 1499, "yearly": 14999}
+
+
+def _plan_price_cents(plan_code: str | None) -> int:
+    """Map plan_code to price in cents. Handles monthly_basic as monthly."""
+    if not plan_code:
+        return 0
+    if plan_code in PLAN_PRICES:
+        return PLAN_PRICES[plan_code]
+    if plan_code.startswith("monthly"):
+        return PLAN_PRICES["monthly"]
+    if plan_code.startswith("weekly"):
+        return PLAN_PRICES["weekly"]
+    if plan_code.startswith("yearly"):
+        return PLAN_PRICES["yearly"]
+    return 0
+
+
 @router.get("/metrics")
 async def metrics(session: AsyncSession = Depends(get_db_session)):
     users_total = await session.scalar(select(func.count()).select_from(User))
@@ -49,8 +75,44 @@ async def metrics(session: AsyncSession = Depends(get_db_session)):
             Collection.status == "scheduled",
         )
     )
+    # Voucher total from real collection data (processed collections only)
     voucher_total_cents = await session.scalar(
-        select(func.coalesce(func.sum(WalletTransaction.amount_cents), 0)).select_from(WalletTransaction)
+        select(func.coalesce(func.sum(Collection.voucher_amount_cents), 0))
+        .select_from(Collection)
+        .where(Collection.status == "processed")
+    )
+    # Recurring schedules
+    total_recurring_schedules = await session.scalar(
+        select(func.count()).select_from(CollectionSlot)
+    )
+    # Recurring schedules breakdown by frequency
+    recurring_by_freq = (
+        await session.execute(
+            select(CollectionSlot.frequency, func.count(CollectionSlot.id))
+            .group_by(CollectionSlot.frequency)
+        )
+    )
+    recurring_schedules_by_frequency = {
+        row[0]: row[1] for row in recurring_by_freq.all()
+    }
+    # Driver totals
+    total_driver_earnings_cents = await session.scalar(
+        select(func.coalesce(func.sum(DriverEarning.amount_cents), 0)).select_from(DriverEarning)
+    )
+    total_driver_payouts_cents = await session.scalar(
+        select(func.coalesce(func.sum(DriverPayout.amount_cents), 0)).select_from(DriverPayout)
+    )
+    # Subscription revenue (count each active subscription × plan price)
+    active_subs = (
+        await session.execute(
+            select(Subscription.plan_code).where(Subscription.status == "active")
+        )
+    ).scalars().all()
+    total_subscription_revenue_cents = sum(
+        _plan_price_cents(plan) for plan in active_subs
+    )
+    available_payout_balance_cents = total_subscription_revenue_cents - int(
+        total_driver_payouts_cents or 0
     )
     return {
         "users_total": int(users_total or 0),
@@ -58,6 +120,12 @@ async def metrics(session: AsyncSession = Depends(get_db_session)):
         "collections_total": int(collections_total or 0),
         "collections_scheduled": int(collections_scheduled or 0),
         "voucher_total_cents": int(voucher_total_cents or 0),
+        "total_recurring_schedules": int(total_recurring_schedules or 0),
+        "recurring_schedules_by_frequency": recurring_schedules_by_frequency,
+        "total_subscription_revenue_cents": total_subscription_revenue_cents,
+        "total_driver_earnings_cents": int(total_driver_earnings_cents or 0),
+        "total_driver_payouts_cents": int(total_driver_payouts_cents or 0),
+        "available_payout_balance_cents": available_payout_balance_cents,
     }
 
 

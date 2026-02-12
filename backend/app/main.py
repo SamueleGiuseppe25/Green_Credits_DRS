@@ -11,7 +11,7 @@ from .routers import payments, stripe_webhooks, drivers, uploads
 from .services.db import engine, SessionLocal
 from .config import get_settings
 from .routers import dev_utils
-from .services.seed import seed_demo_wallet_transactions, seed_return_points
+from .services.seed import seed_return_points
 
 
 logging.basicConfig(level=logging.INFO)
@@ -70,13 +70,12 @@ def create_app() -> FastAPI:
             except Exception as exc:  # pragma: no cover - best-effort log
                 logger.warning("DB not reachable at startup: %s", exc)
 
-        # Seed demo data (best-effort; non-fatal on failure)
+        # Seed return points (best-effort; non-fatal on failure)
         if SessionLocal is not None:
             try:
                 async with SessionLocal() as session:
                     await seed_return_points(session)
-                    await seed_demo_wallet_transactions(session)
-                logger.info("Demo wallet seed done")
+                logger.info("Seed done")
             except Exception as exc:  # pragma: no cover
                 logger.warning("Seed failed: %s", exc)
 

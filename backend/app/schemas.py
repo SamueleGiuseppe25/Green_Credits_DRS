@@ -30,6 +30,9 @@ class Transaction(BaseModel):
     kind: str
     amountCents: int
     note: Optional[str] = None
+    collectionId: Optional[int] = None
+    collectionStatus: Optional[str] = None
+    proofUrl: Optional[str] = None
 
 
 class WalletHistoryResponse(BaseModel):

@@ -8,6 +8,12 @@ export type AdminMetrics = {
   collections_total: number
   collections_scheduled: number
   voucher_total_cents: number
+  total_recurring_schedules: number
+  recurring_schedules_by_frequency: Record<string, number>
+  total_subscription_revenue_cents: number
+  total_driver_earnings_cents: number
+  total_driver_payouts_cents: number
+  available_payout_balance_cents: number
 }
 
 export type AdminCollection = {

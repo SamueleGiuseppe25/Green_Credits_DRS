@@ -28,6 +28,9 @@ export const DriverPage: React.FC = () => {
   const [editing, setEditing] = useState(false)
   const [editForm, setEditForm] = useState({ vehicleType: '', vehiclePlate: '', phone: '' })
 
+  // Availability toggle
+  const [toggleLoading, setToggleLoading] = useState(false)
+
   // Mark collected modal
   const [markingId, setMarkingId] = useState<number | null>(null)
   const [proofFile, setProofFile] = useState<File | null>(null)
@@ -113,6 +116,21 @@ export const DriverPage: React.FC = () => {
     refreshPayouts()
   }, [])
 
+  const toggleAvailability = async () => {
+    if (profile === null || toggleLoading) return
+    const next = !profile.isAvailable
+    setToggleLoading(true)
+    try {
+      const updated = await updateDriverProfile({ isAvailable: next })
+      setProfile(updated)
+      toast.success(next ? 'You are now available' : 'You are now not available')
+    } catch (e: any) {
+      toast.error(e?.message || 'Failed to update availability')
+    } finally {
+      setToggleLoading(false)
+    }
+  }
+
   const handleSaveProfile = async () => {
     try {
       const updated = await updateDriverProfile({
@@ -180,6 +198,30 @@ export const DriverPage: React.FC = () => {
       <p className="text-sm opacity-70 mb-4">Manage your profile and assigned collections.</p>
 
       {error && <div className="mb-4 text-sm text-red-600">{error}</div>}
+
+      {/* Availability Toggle */}
+      {!profileLoading && profile && (
+        <div className="flex items-center gap-3 mb-6 p-4 rounded-lg bg-white dark:bg-gray-800 shadow">
+          <span
+            className={`w-3 h-3 rounded-full flex-shrink-0 ${
+              profile.isAvailable ? 'bg-green-500' : 'bg-gray-400'
+            }`}
+          />
+          <span className="font-medium">
+            {profile.isAvailable ? 'Available' : 'Not Available'}
+          </span>
+          <button
+            type="button"
+            onClick={toggleAvailability}
+            disabled={toggleLoading}
+            className={`ml-auto relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${profile.isAvailable ? 'bg-green-500' : 'bg-gray-300 dark:bg-gray-600'}`}
+          >
+            <span
+              className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${profile.isAvailable ? 'translate-x-6' : 'translate-x-1'}`}
+            />
+          </button>
+        </div>
+      )}
 
       {/* Profile Section */}
       <div className="border rounded-md p-4 mb-6">

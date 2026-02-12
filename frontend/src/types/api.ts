@@ -16,6 +16,9 @@ export interface Transaction {
   kind: string
   amountCents: number
   note?: string
+  collectionId?: number
+  collectionStatus?: string
+  proofUrl?: string
 }
 
 export interface WalletHistoryResponse {

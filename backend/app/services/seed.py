@@ -199,10 +199,13 @@ async def seed_return_points(session: AsyncSession) -> None:
     await session.commit()
 
 
+# Demo seeding disabled – wallet shows real transactions only
+# Kept for reference; do not call on startup.
 async def seed_demo_wallet_transactions(session: AsyncSession) -> None:
     """
     Create a few demo transactions for each user that has no transactions yet.
     Idempotent: if any [DEMO] transactions exist for a user, skip that user.
+    DISABLED: Wallet now shows only real transactions from processed collections.
     """
     users = (await session.execute(select(User))).scalars().all()
     if not users:

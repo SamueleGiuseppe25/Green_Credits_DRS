@@ -1,5 +1,6 @@
 import React, { useState } from 'react'
 import { useWalletBalance, useWalletHistory } from '../hooks/useWallet'
+import { API_BASE_URL } from '../lib/api'
 
 export const WalletPage: React.FC = () => {
   const [page, setPage] = useState(1)
@@ -55,12 +56,16 @@ export const WalletPage: React.FC = () => {
                     <th className="text-left px-3 py-2">Date</th>
                     <th className="text-left px-3 py-2">Type</th>
                     <th className="text-right px-3 py-2">Amount</th>
+                    <th className="text-left px-3 py-2">Collection</th>
                     <th className="text-left px-3 py-2">Note</th>
                   </tr>
                 </thead>
                 <tbody>
                   {history.data.items.map((txn) => {
                     const positive = txn.amountCents >= 0
+                    const isCollectionRelated =
+                      (txn.kind === 'collection_credit' || txn.kind === 'collection_completed') &&
+                      (txn.collectionId != null || txn.collectionStatus != null)
                     return (
                       <tr key={txn.id} className="border-t">
                         <td className="px-3 py-2">{formatDateTime(txn.ts)}</td>
@@ -70,6 +75,43 @@ export const WalletPage: React.FC = () => {
                             {positive ? '+' : '-'}
                             €{formatEuro(Math.abs(txn.amountCents))}
                           </span>
+                        </td>
+                        <td className="px-3 py-2">
+                          {isCollectionRelated ? (
+                            <div className="flex items-center gap-2 flex-wrap">
+                              {txn.collectionId != null && (
+                                <span className="text-xs opacity-80">#{txn.collectionId}</span>
+                              )}
+                              {txn.collectionStatus && (
+                                <CollectionStatusBadge status={txn.collectionStatus} />
+                              )}
+                              {txn.proofUrl && (
+                                <a
+                                  href={
+                                    txn.proofUrl.startsWith('/')
+                                      ? `${API_BASE_URL}${txn.proofUrl}`
+                                      : txn.proofUrl
+                                  }
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  className="inline-block"
+                                  title="View proof"
+                                >
+                                  <img
+                                    src={
+                                      txn.proofUrl.startsWith('/')
+                                        ? `${API_BASE_URL}${txn.proofUrl}`
+                                        : txn.proofUrl
+                                    }
+                                    alt="Proof"
+                                    className="w-8 h-8 object-cover rounded border"
+                                  />
+                                </a>
+                              )}
+                            </div>
+                          ) : (
+                            <span className="text-xs opacity-50">—</span>
+                          )}
                         </td>
                         <td className="px-3 py-2">{txn.note || '-'}</td>
                       </tr>
@@ -123,4 +165,19 @@ export const WalletPage: React.FC = () => {
   )
 }
 
-
+const CollectionStatusBadge: React.FC<{ status: string }> = ({ status }) => {
+  const colors: Record<string, string> = {
+    scheduled: 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200',
+    assigned: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200',
+    collected: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200',
+    processed: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200',
+    canceled: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200',
+  }
+  return (
+    <span
+      className={`inline-block text-xs px-2 py-0.5 rounded-full ${colors[status] || 'bg-gray-100 text-gray-800'}`}
+    >
+      {status}
+    </span>
+  )
+}
