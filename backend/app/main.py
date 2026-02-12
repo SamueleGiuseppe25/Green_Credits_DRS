@@ -1,4 +1,5 @@
 import logging
+import os  # Add this import
 from pathlib import Path
 
 from fastapi import FastAPI
@@ -21,14 +22,18 @@ logger = logging.getLogger("gc")
 def create_app() -> FastAPI:
     app = FastAPI(title="GreenCredits API (MVP)", version="0.1.0")
 
-    # CORS for dev frontend and future host
+    # CORS - read from environment variable or use defaults
+    cors_origins_str = os.getenv(
+        "CORS_ORIGINS",
+        "http://localhost:5173,http://localhost:3000,https://green-credits-drs.vercel.app"
+    )
+    cors_origins = [origin.strip() for origin in cors_origins_str.split(",")]
+    
+    logger.info(f"CORS origins configured: {cors_origins}")  # Log for debugging
+    
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=[
-            "http://localhost:5173",  # Vite dev
-            "http://localhost:3000",  # Next.js dev
-            "https://green-credits-drs.vercel.app", # add your production domain here
-        ],
+        allow_origins=cors_origins,
         allow_credentials=True,
         allow_methods=["*"],
         allow_headers=["*"],
