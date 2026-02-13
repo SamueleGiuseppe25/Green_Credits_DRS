@@ -17,15 +17,10 @@ jobs:
         with:
           ref: ${{ github.event_name == 'workflow_dispatch' && github.ref || github.event.workflow_run.head_sha }}
 
-      - name: Verify Railway secrets
-        run: |
-          if [ -n "${{ secrets.RAILWAY_TOKEN }}" ]; then echo "token set: true"; else echo "token set: false"; fi
-          if [ -n "${{ secrets.RAILWAY_SERVICE_ID }}" ]; then echo "service_id set: true"; else echo "service_id set: false"; fi
-          if [ -n "${{ secrets.RAILWAY_PROJECT_ID }}" ]; then echo "project_id set: true"; else echo "project_id set: false"; fi
+      - name: Install Railway CLI
+        run: npm install -g @railway/cli
 
-      - uses: bervProject/railway-deploy@main
+      - name: Deploy to Railway
+        run: railway up --service ${{ secrets.RAILWAY_SERVICE_ID }} --detach
         env:
           RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
-        with:
-          service: ${{ secrets.RAILWAY_SERVICE_ID }}
-          detach: false
