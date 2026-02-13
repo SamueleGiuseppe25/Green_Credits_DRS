@@ -63,9 +63,9 @@ async def stripe_webhook(
         return {"ok": True}
 
     price_map = {
-        settings.stripe_price_weekly: "weekly",
-        settings.stripe_price_monthly: "monthly",
-        settings.stripe_price_yearly: "yearly",
+        settings.stripe_price_id_weekly: "weekly",
+        settings.stripe_price_id_monthly: "monthly",
+        settings.stripe_price_id_yearly: "yearly",
     }
     plan_code = price_map.get(price_id)
     if not plan_code:

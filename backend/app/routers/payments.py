@@ -27,9 +27,9 @@ async def create_checkout_session(current_user: CurrentUserDep, payload: Checkou
         raise HTTPException(status_code=500, detail="Stripe is not configured (missing STRIPE_SECRET_KEY)")
 
     price_by_plan = {
-        "weekly": settings.stripe_price_weekly,
-        "monthly": settings.stripe_price_monthly,
-        "yearly": settings.stripe_price_yearly,
+        "weekly": settings.stripe_price_id_weekly,
+        "monthly": settings.stripe_price_id_monthly,
+        "yearly": settings.stripe_price_id_yearly,
     }
     price_id = price_by_plan.get(plan)
     if not price_id:
@@ -41,8 +41,8 @@ async def create_checkout_session(current_user: CurrentUserDep, payload: Checkou
         session = stripe.checkout.Session.create(
             mode="subscription",
             line_items=[{"price": price_id, "quantity": 1}],
-            success_url=f"{settings.frontend_base_url}/subscribe/success?session_id={{CHECKOUT_SESSION_ID}}",
-            cancel_url=f"{settings.frontend_base_url}/subscribe/cancel",
+            success_url=f"{settings.frontend_url}/subscribe/success?session_id={{CHECKOUT_SESSION_ID}}",
+            cancel_url=f"{settings.frontend_url}/subscribe/cancel",
             client_reference_id=str(current_user.id),
         )
     except Exception as e:  # pragma: no cover (best-effort)

@@ -30,9 +30,9 @@ class Settings(BaseSettings):
     port: int = Field(default=8000)
 
     # JWT / Auth
-    secret_key: str = Field(default="dev-secret", description="JWT signing secret")
+    jwt_secret_key: str = Field(default="dev-secret", description="JWT signing secret")
     jwt_algorithm: str = Field(default="HS256")
-    access_token_minutes: int = Field(default=60)
+    access_token_expire_minutes: int = Field(default=60)
 
     # Dev switches
     mock_auth: bool = Field(
@@ -45,10 +45,10 @@ class Settings(BaseSettings):
     # Stripe (TEST mode)
     stripe_secret_key: str | None = Field(default=None, description="Stripe secret key (STRIPE_SECRET_KEY)")
     stripe_webhook_secret: str | None = Field(default=None, description="Stripe webhook signing secret (STRIPE_WEBHOOK_SECRET)")
-    frontend_base_url: str = Field(default="http://localhost:5173", description="Frontend base URL (FRONTEND_BASE_URL)")
-    stripe_price_weekly: str | None = Field(default=None, description="Stripe Price ID for weekly plan (STRIPE_PRICE_WEEKLY)")
-    stripe_price_monthly: str | None = Field(default=None, description="Stripe Price ID for monthly plan (STRIPE_PRICE_MONTHLY)")
-    stripe_price_yearly: str | None = Field(default=None, description="Stripe Price ID for yearly plan (STRIPE_PRICE_YEARLY)")
+    frontend_url: str = Field(default="http://localhost:5173", description="Frontend URL (FRONTEND_URL)")
+    stripe_price_id_weekly: str | None = Field(default=None, description="Stripe Price ID for weekly plan (STRIPE_PRICE_ID_WEEKLY)")
+    stripe_price_id_monthly: str | None = Field(default=None, description="Stripe Price ID for monthly plan (STRIPE_PRICE_ID_MONTHLY)")
+    stripe_price_id_yearly: str | None = Field(default=None, description="Stripe Price ID for yearly plan (STRIPE_PRICE_ID_YEARLY)")
 
 
 @lru_cache(maxsize=1)

@@ -21,14 +21,14 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
 def create_access_token(subject: str | int, expires_minutes: Optional[int] = None) -> str:
     settings = get_settings()
     expire = datetime.now(tz=timezone.utc) + timedelta(
-        minutes=expires_minutes or settings.access_token_minutes
+        minutes=expires_minutes or settings.access_token_expire_minutes
     )
     to_encode: dict[str, Any] = {"sub": str(subject), "exp": expire}
-    return jwt.encode(to_encode, settings.secret_key, algorithm=settings.jwt_algorithm)
+    return jwt.encode(to_encode, settings.jwt_secret_key, algorithm=settings.jwt_algorithm)
 
 
 def decode_token(token: str) -> dict[str, Any]:
     settings = get_settings()
-    return jwt.decode(token, settings.secret_key, algorithms=[settings.jwt_algorithm])
+    return jwt.decode(token, settings.jwt_secret_key, algorithms=[settings.jwt_algorithm])
 
 
