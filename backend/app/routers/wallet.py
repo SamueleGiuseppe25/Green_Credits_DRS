@@ -1,3 +1,4 @@
+from datetime import datetime
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, Query, HTTPException
@@ -5,6 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..services.db import get_db_session
 from ..dependencies.auth import CurrentUserDep
+from ..core.events import publish_event
 from ..services.wallet import get_balance, get_history, donate as wallet_donate, redeem as wallet_redeem
 from ..schemas import (
     WalletBalanceResponse,
@@ -51,6 +53,16 @@ async def donate(
         proof_ref, new_balance_cents = await wallet_donate(session, current_user.id, payload.amountCents)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
+    publish_event(
+        "wallet.debit.donated",
+        {
+            "email": current_user.email,
+            "amount_eur": payload.amountCents / 100.0,
+            "proof_ref": proof_ref,
+            "new_balance_eur": new_balance_cents / 100.0,
+            "ts": datetime.utcnow().isoformat(),
+        },
+    )
     return {"proofRef": proof_ref, "newBalanceCents": new_balance_cents}
 
 
@@ -66,6 +78,16 @@ async def redeem(
         proof_ref, new_balance_cents = await wallet_redeem(session, current_user.id, payload.amountCents)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
+    publish_event(
+        "wallet.debit.redeemed",
+        {
+            "email": current_user.email,
+            "amount_eur": payload.amountCents / 100.0,
+            "proof_ref": proof_ref,
+            "new_balance_eur": new_balance_cents / 100.0,
+            "ts": datetime.utcnow().isoformat(),
+        },
+    )
     return {"proofRef": proof_ref, "newBalanceCents": new_balance_cents}
 
 

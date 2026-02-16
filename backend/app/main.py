@@ -9,6 +9,7 @@ from .services.db import engine, SessionLocal
 from .config import get_settings
 from .routers import dev_utils
 from .services.seed import seed_demo_wallet_transactions
+from .events.notification_handlers import register_notification_handlers
 
 
 logging.basicConfig(level=logging.INFO)
@@ -50,6 +51,7 @@ def create_app() -> FastAPI:
     @app.on_event("startup")
     async def on_startup():
         logger.info("App started")
+        register_notification_handlers()
         if engine is not None:
             try:
                 async with engine.begin():

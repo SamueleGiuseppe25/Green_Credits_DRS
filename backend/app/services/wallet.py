@@ -4,7 +4,8 @@ from typing import Tuple, List
 from sqlalchemy import select, func, desc, and_, extract
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from ..models import WalletTransaction
+from ..models import WalletTransaction, User
+from ..core.events import publish_event
 
 
 async def get_balance(session: AsyncSession, user_id: int) -> Tuple[int, datetime]:
@@ -128,6 +129,20 @@ async def credit_wallet_for_collection(
     session.add(txn)
     await session.commit()
     await session.refresh(txn)
+    new_balance, _ = await get_balance(session, user_id)
+    user_row = await session.get(User, user_id)
+    email = user_row.email if user_row else ""
+    proof_ref = note or txn.note or f"COLLECTION-{collection_id}"
+    publish_event(
+        "wallet.credit.created",
+        {
+            "email": email,
+            "amount_eur": amount_cents / 100.0,
+            "proof_ref": proof_ref,
+            "new_balance_eur": new_balance / 100.0,
+            "ts": datetime.utcnow().isoformat(),
+        },
+    )
     return txn
 
 

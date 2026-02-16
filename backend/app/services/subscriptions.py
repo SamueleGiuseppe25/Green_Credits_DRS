@@ -1,9 +1,32 @@
-from datetime import date
+from datetime import date, datetime
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..models import Subscription
+from ..core.events import publish_event
+
+
+def publish_subscription_confirmed(
+    user_email: str,
+    plan_code: str,
+    amount_cents: int = 0,
+    stripe_invoice_id: str | None = None,
+) -> None:
+    """
+    Publish subscription.confirmed event (e.g. after Stripe webhook or manual activation).
+    Call from Stripe webhook handler when payment succeeds, or from activate/choose_plan.
+    """
+    publish_event(
+        "subscription.confirmed",
+        {
+            "email": user_email,
+            "plan_code": plan_code,
+            "amount_eur": amount_cents / 100.0,
+            "stripe_invoice_id": stripe_invoice_id,
+            "ts": datetime.utcnow().isoformat(),
+        },
+    )
 
 
 async def get_me(session: AsyncSession, user_id: int) -> Subscription | None:

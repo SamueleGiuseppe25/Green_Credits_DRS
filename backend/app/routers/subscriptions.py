@@ -3,7 +3,13 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..dependencies.auth import CurrentUserDep
 from ..services.db import get_db_session
-from ..services.subscriptions import get_me as svc_get_me, activate as svc_activate, cancel as svc_cancel, choose_plan as svc_choose
+from ..services.subscriptions import (
+    get_me as svc_get_me,
+    activate as svc_activate,
+    cancel as svc_cancel,
+    choose_plan as svc_choose,
+    publish_subscription_confirmed,
+)
 from ..schemas import Subscription as SubscriptionSchema
 from pydantic import BaseModel
 from fastapi import HTTPException
@@ -28,6 +34,12 @@ async def get_me(current_user: CurrentUserDep, session: AsyncSession = Depends(g
 @router.post("/activate", response_model=SubscriptionSchema)
 async def activate(current_user: CurrentUserDep, session: AsyncSession = Depends(get_db_session)):
     sub = await svc_activate(session, current_user.id)
+    publish_subscription_confirmed(
+        user_email=current_user.email,
+        plan_code=sub.plan_code or "monthly_basic",
+        amount_cents=0,
+        stripe_invoice_id=None,
+    )
     return {
         "status": sub.status,
         "planCode": sub.plan_code,
@@ -61,6 +73,12 @@ async def choose_plan(
         sub = await svc_choose(session, current_user.id, payload.planCode)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
+    publish_subscription_confirmed(
+        user_email=current_user.email,
+        plan_code=sub.plan_code or payload.planCode,
+        amount_cents=0,
+        stripe_invoice_id=None,
+    )
     return {
         "status": sub.status,
         "planCode": sub.plan_code,
