@@ -1,12 +1,15 @@
 from datetime import datetime
 
 from fastapi import APIRouter, Depends, Query, HTTPException
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from pydantic import BaseModel
 from typing import Optional
 
+from ..core.events import publish_event
 from ..dependencies.auth import CurrentUserDep, require_active_subscription
 from ..models.user import User
+from ..models.return_point import ReturnPoint
 from ..services.db import get_db_session
 from ..services.collections import create as svc_create, list_me as svc_list_me, cancel as svc_cancel, delete_canceled as svc_delete_canceled
 
@@ -40,6 +43,16 @@ async def create_collection(
         )
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
+    rp_name = ""
+    rp_row = (await session.execute(select(ReturnPoint).where(ReturnPoint.id == created.return_point_id).limit(1))).scalars().first()
+    if rp_row:
+        rp_name = rp_row.name
+    await publish_event("collection.scheduled", {
+        "email": current_user.email,
+        "collection_id": created.id,
+        "scheduled_at": str(created.scheduled_at),
+        "return_point_name": rp_name,
+    })
     return {
         "id": created.id,
         "userId": created.user_id,

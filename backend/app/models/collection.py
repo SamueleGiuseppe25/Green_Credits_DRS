@@ -12,6 +12,7 @@ class Collection(Base):
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     user_id: Mapped[int] = mapped_column(nullable=False, index=True)
     return_point_id: Mapped[int] = mapped_column(nullable=False, index=True)
+    collection_slot_id: Mapped[int | None] = mapped_column(nullable=True, index=True)
 
     scheduled_at: Mapped[datetime] = mapped_column(DateTime, nullable=False)
     status: Mapped[str] = mapped_column(String(16), nullable=False, index=True, default="scheduled")

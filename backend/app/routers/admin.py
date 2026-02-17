@@ -30,7 +30,9 @@ from ..schemas import (
     DriverEarningsBalanceOut,
     DriverEarningOut,
     DriverPayoutOut,
+    GenerateCollectionsResponse,
 )
+from ..services.recurring_generation import generate_collections as svc_generate_collections
 
 router = APIRouter(prefix="/admin", tags=["admin"], dependencies=[Depends(require_admin)])
 
@@ -75,20 +77,21 @@ async def metrics(session: AsyncSession = Depends(get_db_session)):
             Collection.status == "scheduled",
         )
     )
-    # Voucher total from real collection data (processed collections only)
+    # Voucher total from real collection data (completed collections only)
     voucher_total_cents = await session.scalar(
         select(func.coalesce(func.sum(Collection.voucher_amount_cents), 0))
         .select_from(Collection)
-        .where(Collection.status == "processed")
+        .where(Collection.status == "completed")
     )
     # Recurring schedules
     total_recurring_schedules = await session.scalar(
-        select(func.count()).select_from(CollectionSlot)
+        select(func.count()).select_from(CollectionSlot).where(CollectionSlot.status == "active")
     )
     # Recurring schedules breakdown by frequency
     recurring_by_freq = (
         await session.execute(
             select(CollectionSlot.frequency, func.count(CollectionSlot.id))
+            .where(CollectionSlot.status == "active")
             .group_by(CollectionSlot.frequency)
         )
     )
@@ -129,6 +132,14 @@ async def metrics(session: AsyncSession = Depends(get_db_session)):
     }
 
 
+@router.post("/generate-collections", response_model=GenerateCollectionsResponse)
+async def generate_collections(
+    session: AsyncSession = Depends(get_db_session),
+):
+    result = await svc_generate_collections(session, weeks_ahead=4)
+    return GenerateCollectionsResponse(generated=result["generated"], skipped=result["skipped"])
+
+
 @router.get("/collections")
 async def list_collections(
     status: str | None = Query(default=None),
@@ -152,6 +163,7 @@ async def list_collections(
             "driver_id": c.driver_id,
             "proof_url": c.proof_url,
             "voucher_amount_cents": c.voucher_amount_cents,
+            "collection_slot_id": c.collection_slot_id,
         }
         for c in rows
     ]

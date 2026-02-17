@@ -72,11 +72,13 @@ export interface Subscription {
 }
 
 export interface CollectionSlot {
+  id?: number
   weekday: number // 0-6 (backend returns a single preferred weekly slot)
   startTime: string // "HH:MM:SS" or "HH:MM"
   endTime: string
   preferredReturnPointId: number | null
   frequency: 'weekly' | 'fortnightly' | 'every_2_weeks' | 'monthly'
+  status?: 'active' | 'paused' | 'cancelled'
   enabled?: boolean
 }
 

@@ -8,6 +8,7 @@ from ..services.drivers import (
     update_profile,
     get_driver_collections,
     mark_collected,
+    mark_completed,
 )
 from ..services.driver_payouts import (
     get_driver_balance,
@@ -99,11 +100,40 @@ async def get_my_collections(
 @router.patch("/me/collections/{id}/mark-collected")
 async def mark_collection_collected(
     id: int,
+    user=Depends(require_driver),
+    session: AsyncSession = Depends(get_db_session),
+):
+    col, err = await mark_collected(session, id, user.id)
+    if col is None and err is None:
+        raise HTTPException(status_code=404, detail="Collection not found")
+    if col is None:
+        raise HTTPException(status_code=400, detail=err)
+    if err:
+        raise HTTPException(status_code=400, detail=err)
+    return {
+        "id": col.id,
+        "userId": col.user_id,
+        "scheduledAt": col.scheduled_at,
+        "returnPointId": col.return_point_id,
+        "status": col.status,
+        "bagCount": col.bag_count,
+        "notes": col.notes,
+        "driverId": col.driver_id,
+        "proofUrl": col.proof_url,
+        "voucherAmountCents": col.voucher_amount_cents,
+        "createdAt": col.created_at,
+        "updatedAt": col.updated_at,
+    }
+
+
+@router.patch("/me/collections/{id}/mark-completed")
+async def mark_collection_completed(
+    id: int,
     payload: MarkCollectedRequest,
     user=Depends(require_driver),
     session: AsyncSession = Depends(get_db_session),
 ):
-    col, err = await mark_collected(
+    col, err = await mark_completed(
         session,
         id,
         user.id,

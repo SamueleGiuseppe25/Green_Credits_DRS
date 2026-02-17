@@ -26,6 +26,7 @@ export type AdminCollection = {
   notes: string | null
   driver_id: number | null
   proof_url: string | null
+  collection_slot_id: number | null
 }
 
 export type AdminDriver = {
@@ -112,7 +113,7 @@ export function assignDriverToCollection(collectionId: number, driverId: number)
 export function processCollection(collectionId: number): Promise<AdminCollection> {
   return adminFetch<AdminCollection>(`/admin/collections/${collectionId}/status`, {
     method: 'PATCH',
-    body: JSON.stringify({ status: 'processed' }),
+    body: JSON.stringify({ status: 'completed' }),
   })
 }
 
@@ -129,4 +130,15 @@ export function createDriverPayout(driverId: number, amountCents: number, note?:
 
 export function fetchAllPayouts(): Promise<DriverPayout[]> {
   return adminFetch<DriverPayout[]>('/admin/payouts')
+}
+
+export type GenerateCollectionsResponse = {
+  generated: number
+  skipped: number
+}
+
+export function generateCollections(): Promise<GenerateCollectionsResponse> {
+  return adminFetch<GenerateCollectionsResponse>('/admin/generate-collections', {
+    method: 'POST',
+  })
 }

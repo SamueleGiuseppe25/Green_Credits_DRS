@@ -52,10 +52,17 @@ async def upsert(
             raise ValueError("preferredReturnPointId does not reference an existing return point")
 
     # Block enabling schedule if user has any upcoming one-off collection
+    # (exclude recurring collections, canceled, completed)
     now = datetime.utcnow()
     upcoming = await session.scalar(
         sa_select(sa_select(Collection.id).where(
-            and_(Collection.user_id == user_id, Collection.status != "canceled", Collection.scheduled_at >= now)
+            and_(
+                Collection.user_id == user_id,
+                Collection.is_archived == False,  # noqa: E712
+                Collection.collection_slot_id.is_(None),
+                Collection.status.notin_(["canceled", "completed"]),
+                Collection.scheduled_at >= now,
+            )
         ).exists())
     )
     if upcoming:
@@ -70,6 +77,7 @@ async def upsert(
             end_time=end_time,
             preferred_return_point_id=preferred_return_point_id,
             frequency=frequency if frequency != "every_2_weeks" else "fortnightly",
+            status="active",
         )
         session.add(current)
     else:
@@ -78,6 +86,7 @@ async def upsert(
         current.end_time = end_time
         current.preferred_return_point_id = preferred_return_point_id
         current.frequency = frequency if frequency != "every_2_weeks" else "fortnightly"
+        current.status = "active"
     await session.commit()
     await session.refresh(current)
     return current
@@ -87,7 +96,69 @@ async def delete_me(session: AsyncSession, user_id: int) -> None:
     current = await get_me(session, user_id)
     if current is None:
         return
-    await session.delete(current)
+    current.status = "cancelled"
     await session.commit()
+
+
+async def pause_slot(session: AsyncSession, user_id: int, slot_id: int) -> CollectionSlot | None:
+    slot = (await session.execute(
+        select(CollectionSlot).where(
+            CollectionSlot.id == slot_id,
+            CollectionSlot.user_id == user_id,
+        ).limit(1)
+    )).scalars().first()
+    if slot is None:
+        return None
+    slot.status = "paused"
+    await session.commit()
+    await session.refresh(slot)
+    return slot
+
+
+async def resume_slot(session: AsyncSession, user_id: int, slot_id: int) -> CollectionSlot | None:
+    slot = (await session.execute(
+        select(CollectionSlot).where(
+            CollectionSlot.id == slot_id,
+            CollectionSlot.user_id == user_id,
+        ).limit(1)
+    )).scalars().first()
+    if slot is None:
+        return None
+    if slot.status not in ("paused",):
+        return None
+    # Same validation as upsert: no conflicting one-offs
+    now = datetime.utcnow()
+    upcoming = await session.scalar(
+        sa_select(sa_select(Collection.id).where(
+            and_(
+                Collection.user_id == user_id,
+                Collection.is_archived == False,  # noqa: E712
+                Collection.collection_slot_id.is_(None),
+                Collection.status.notin_(["canceled", "completed"]),
+                Collection.scheduled_at >= now,
+            )
+        ).exists())
+    )
+    if upcoming:
+        raise ValueError("You already have a collection scheduled. Cancel it before enabling a recurring pickup.")
+    slot.status = "active"
+    await session.commit()
+    await session.refresh(slot)
+    return slot
+
+
+async def cancel_slot(session: AsyncSession, user_id: int, slot_id: int) -> CollectionSlot | None:
+    slot = (await session.execute(
+        select(CollectionSlot).where(
+            CollectionSlot.id == slot_id,
+            CollectionSlot.user_id == user_id,
+        ).limit(1)
+    )).scalars().first()
+    if slot is None:
+        return None
+    slot.status = "cancelled"
+    await session.commit()
+    await session.refresh(slot)
+    return slot
 
 

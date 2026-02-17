@@ -59,7 +59,9 @@ class CollectionSlot(BaseModel):
     frequency: str = "weekly"
 
 class CollectionSlotOut(CollectionSlot):
+    id: Optional[int] = None
     enabled: bool
+    status: str = "active"
 
 
 class Collection(BaseModel):
@@ -73,8 +75,14 @@ class Collection(BaseModel):
     driverId: Optional[int] = None
     proofUrl: Optional[str] = None
     voucherAmountCents: Optional[int] = None
+    collectionSlotId: Optional[int] = None
     createdAt: datetime
     updatedAt: datetime
+
+
+class GenerateCollectionsResponse(BaseModel):
+    generated: int
+    skipped: int
 
 class LoginRequest(BaseModel):
     email: str

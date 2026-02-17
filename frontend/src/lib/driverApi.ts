@@ -58,8 +58,14 @@ export function fetchDriverCollections(status?: string): Promise<DriverCollectio
   return driverFetch<DriverCollection[]>(`/drivers/me/collections${qs}`)
 }
 
-export function markCollected(id: number, voucherAmountCents: number, proofUrl?: string): Promise<DriverCollection> {
+export function markCollected(id: number): Promise<DriverCollection> {
   return driverFetch<DriverCollection>(`/drivers/me/collections/${id}/mark-collected`, {
+    method: 'PATCH',
+  })
+}
+
+export function markCompleted(id: number, voucherAmountCents: number, proofUrl?: string): Promise<DriverCollection> {
+  return driverFetch<DriverCollection>(`/drivers/me/collections/${id}/mark-completed`, {
     method: 'PATCH',
     body: JSON.stringify({ proofUrl: proofUrl || null, voucherAmountCents }),
   })

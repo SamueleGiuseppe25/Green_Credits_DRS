@@ -55,3 +55,54 @@ export function useDeleteCollectionSlot() {
     },
   })
 }
+
+export function usePauseCollectionSlot() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (slotId: number) =>
+      apiFetch<CollectionSlot>(`/collection-slots/${slotId}/pause`, {
+        method: 'PATCH',
+      }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['collection-slots', 'me'] })
+      toast.success('Schedule paused')
+    },
+    onError: (err: any) => {
+      toast.error(err?.message || 'Could not pause schedule')
+    },
+  })
+}
+
+export function useResumeCollectionSlot() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (slotId: number) =>
+      apiFetch<CollectionSlot>(`/collection-slots/${slotId}/resume`, {
+        method: 'PATCH',
+      }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['collection-slots', 'me'] })
+      toast.success('Schedule resumed')
+    },
+    onError: (err: any) => {
+      toast.error(err?.message || 'Could not resume schedule')
+    },
+  })
+}
+
+export function useCancelCollectionSlot() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (slotId: number) =>
+      apiFetch<void>(`/collection-slots/${slotId}`, {
+        method: 'DELETE',
+      }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['collection-slots', 'me'] })
+      toast.success('Schedule cancelled')
+    },
+    onError: (err: any) => {
+      toast.error(err?.message || 'Could not cancel schedule')
+    },
+  })
+}

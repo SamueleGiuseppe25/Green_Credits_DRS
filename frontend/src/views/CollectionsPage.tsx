@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import { useCollections, useCreateCollection, useCancelCollection, useDeleteCollection } from '../hooks/useCollections'
-import { useMyCollectionSlots, useUpsertCollectionSlots, useDeleteCollectionSlot } from '../hooks/useSubscription'
+import { useMyCollectionSlots, useUpsertCollectionSlots, useDeleteCollectionSlot, usePauseCollectionSlot, useResumeCollectionSlot, useCancelCollectionSlot } from '../hooks/useSubscription'
 import { useReturnPoints } from '../hooks/useReturnPoints'
 import toast from 'react-hot-toast'
 import { apiFetch } from '../lib/api'
@@ -42,6 +42,9 @@ export const CollectionsPage: React.FC = () => {
   const slot = useMyCollectionSlots()
   const upsertSlot = useUpsertCollectionSlots()
   const deleteSlot = useDeleteCollectionSlot()
+  const pauseSlot = usePauseCollectionSlot()
+  const resumeSlot = useResumeCollectionSlot()
+  const cancelSlot = useCancelCollectionSlot()
 
   const [sub, setSub] = useState<Subscription | null>(null)
   const [subLoading, setSubLoading] = useState(true)
@@ -51,7 +54,7 @@ export const CollectionsPage: React.FC = () => {
   const totalPages = Math.max(1, Math.ceil(total / pageSize))
   const returnPoints = rpData?.items ?? []
   const rpById = useMemo(() => new Map(returnPoints.map(r => [r.id, r])), [returnPoints])
-  const slotEnabled = Boolean(slot.data?.enabled)
+  const slotEnabled = Boolean(slot.data?.enabled ?? slot.data?.status === 'active')
   const now = useMemo(() => new Date(), [])
   const hasUpcomingOneOff = useMemo(() => {
     return (data?.items ?? []).some(c => c.status.toLowerCase() !== 'canceled' && new Date(c.scheduledAt) >= now)
@@ -271,8 +274,8 @@ export const CollectionsPage: React.FC = () => {
 
         <div className="border rounded-md p-4">
           <div className="font-semibold mb-2">Recurring pickup schedule</div>
-          {slotEnabled && slot.data && (
-            <div className="mb-3 text-sm border rounded px-3 py-2 bg-gray-50 dark:bg-gray-800/50 flex items-center justify-between">
+          {slot.data && (slot.data.status === 'active' || slot.data.status === 'paused') && (
+            <div className="mb-3 text-sm border rounded px-3 py-2 bg-gray-50 dark:bg-gray-800/50 flex items-center justify-between flex-wrap gap-2">
               <div>
                 {(() => {
                   const freq = (slot.data?.frequency || 'weekly')
@@ -280,38 +283,82 @@ export const CollectionsPage: React.FC = () => {
                   const start = (slot.data?.startTime || '').slice(0,5)
                   const end = (slot.data?.endTime || '').slice(0,5)
                   const rp = slot.data?.preferredReturnPointId ? rpById.get(slot.data.preferredReturnPointId) : null
-                  return `Your recurring pickup: ${freq.charAt(0).toUpperCase()}${freq.slice(1)} • ${weekday} • ${start}–${end}` + (rp ? ` • ${rp.name}` : '')
+                  const statusLabel = slot.data?.status === 'active' ? 'Active' : 'Paused'
+                  return `Your recurring pickup: ${freq.charAt(0).toUpperCase()}${freq.slice(1)} • ${weekday} • ${start}–${end}` + (rp ? ` • ${rp.name}` : '') + ` (${statusLabel})`
                 })()}
               </div>
-              <button
-                className="text-xs px-2 py-1 rounded border hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-50 ml-3"
-                disabled={deleteSlot.isPending}
-                onClick={async () => {
-                  if (window.confirm('Disable recurring pickup schedule?')) {
-                    await deleteSlot.mutateAsync()
-                  }
-                }}
-              >
-                {deleteSlot.isPending ? 'Disabling…' : 'Disable schedule'}
-              </button>
+              <div className="flex gap-1">
+                {slot.data?.status === 'active' && (
+                  <>
+                    <button
+                      className="text-xs px-2 py-1 rounded border hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-50"
+                      disabled={pauseSlot.isPending}
+                      onClick={async () => {
+                        if (slot.data?.id != null && window.confirm('Pause recurring pickup schedule?')) {
+                          await pauseSlot.mutateAsync(slot.data.id)
+                        }
+                      }}
+                    >
+                      {pauseSlot.isPending ? 'Pausing…' : 'Pause'}
+                    </button>
+                    <button
+                      className="text-xs px-2 py-1 rounded border hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-50"
+                      disabled={cancelSlot.isPending || deleteSlot.isPending}
+                      onClick={async () => {
+                        if (slot.data?.id != null && window.confirm('Cancel recurring pickup schedule?')) {
+                          await cancelSlot.mutateAsync(slot.data.id)
+                        }
+                      }}
+                    >
+                      {cancelSlot.isPending ? 'Cancelling…' : 'Cancel'}
+                    </button>
+                  </>
+                )}
+                {slot.data?.status === 'paused' && (
+                  <>
+                    <button
+                      className="text-xs px-2 py-1 rounded bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-50"
+                      disabled={resumeSlot.isPending}
+                      onClick={async () => {
+                        if (slot.data?.id != null) {
+                          await resumeSlot.mutateAsync(slot.data.id)
+                        }
+                      }}
+                    >
+                      {resumeSlot.isPending ? 'Resuming…' : 'Resume'}
+                    </button>
+                    <button
+                      className="text-xs px-2 py-1 rounded border hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-50"
+                      disabled={cancelSlot.isPending}
+                      onClick={async () => {
+                        if (slot.data?.id != null && window.confirm('Cancel recurring pickup schedule?')) {
+                          await cancelSlot.mutateAsync(slot.data.id)
+                        }
+                      }}
+                    >
+                      {cancelSlot.isPending ? 'Cancelling…' : 'Cancel'}
+                    </button>
+                  </>
+                )}
+              </div>
             </div>
           )}
           {slot.isLoading && <div className="text-sm opacity-70">Loading schedule…</div>}
           {slot.isError && <div className="text-sm text-red-600">Could not load schedule.</div>}
           {!slot.isLoading && !slot.isError && (
             <>
-              {!slotEnabled && hasUpcomingOneOff && (
+              {(!slot.data || slot.data.status === 'cancelled') && hasUpcomingOneOff && (
                 <div className="text-xs mb-2 opacity-70">
                   You already have a collection scheduled. Cancel it to enable recurring pickups.
                 </div>
               )}
-            <RecurringScheduleForm
-              slot={slot.data || null}
-              returnPoints={returnPoints}
-              onSave={async (payload) => {
-                await upsertSlot.mutateAsync(payload as any)
-              }}
-            />
+              <RecurringScheduleForm
+                slot={slot.data && slot.data.status !== 'cancelled' ? slot.data : null}
+                returnPoints={returnPoints}
+                onSave={async (payload) => {
+                  await upsertSlot.mutateAsync(payload as any)
+                }}
+              />
             </>
           )}
         </div>

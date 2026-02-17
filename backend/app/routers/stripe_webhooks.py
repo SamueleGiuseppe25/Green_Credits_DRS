@@ -2,13 +2,15 @@ import logging
 
 import stripe
 from fastapi import APIRouter, Depends, HTTPException, Request
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..config import get_settings
+from ..core.events import publish_event
+from ..models.user import User
 from ..services.db import get_db_session
-from datetime import datetime
-
 from ..services.subscriptions import get_me as svc_get_me, choose_plan as svc_choose
+from datetime import datetime
 
 logger = logging.getLogger("gc.webhooks.stripe")
 
@@ -84,6 +86,20 @@ async def stripe_webhook(
     except Exception:
         logger.exception("Failed to activate subscription for user_id=%s plan=%s", user_id, plan_code)
         return {"ok": True}
+
+    # Publish subscription confirmed event
+    try:
+        user = (await session.execute(select(User).where(User.id == user_id).limit(1))).scalars().first()
+        if user:
+            amount_total = session_obj.get("amount_total", 0)
+            await publish_event("subscription.confirmed", {
+                "email": user.email,
+                "plan_code": plan_code,
+                "amount_eur": (amount_total or 0) / 100,
+                "stripe_invoice_id": session_obj.get("invoice") or checkout_session_id,
+            })
+    except Exception:
+        logger.warning("Failed to publish subscription.confirmed event")
 
     # Prefer Stripe's own period timestamps when available.
     try:

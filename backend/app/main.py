@@ -13,6 +13,7 @@ from .services.db import engine, SessionLocal
 from .config import get_settings
 from .routers import dev_utils
 from .services.seed import seed_return_points
+from .events.notification_handlers import register_notification_handlers
 
 
 logging.basicConfig(level=logging.INFO)
@@ -59,6 +60,8 @@ def create_app() -> FastAPI:
     app.include_router(users.router, prefix="/users", tags=["Users"])
     app.include_router(drivers.router, prefix="/drivers", tags=["Drivers"])
     app.include_router(uploads.router, prefix="/api/uploads", tags=["Uploads"])
+
+    register_notification_handlers()
 
     @app.get("/")
     async def root():

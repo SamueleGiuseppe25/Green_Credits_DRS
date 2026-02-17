@@ -11,6 +11,7 @@ import {
   fetchDriverEarnings,
   createDriverPayout,
   fetchAllPayouts,
+  generateCollections,
   type AdminCollection,
   type AdminMetrics,
   type AdminDriver,
@@ -36,6 +37,7 @@ export const AdminPage: React.FC = () => {
   const [driverEarningsLoading, setDriverEarningsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all')
+  const [generateLoading, setGenerateLoading] = useState(false)
 
   // Assign driver state (tracks which collection row has the dropdown open)
   const [assigningId, setAssigningId] = useState<number | null>(null)
@@ -55,7 +57,7 @@ export const AdminPage: React.FC = () => {
 
   const statusParam = useMemo(() => {
     if (statusFilter === 'all') return undefined
-    if (statusFilter === 'completed') return 'processed'
+    if (statusFilter === 'completed') return 'completed'
     if (statusFilter === 'cancelled') return 'canceled'
     return statusFilter
   }, [statusFilter])
@@ -162,11 +164,24 @@ export const AdminPage: React.FC = () => {
     }
   }
 
+  const handleGenerateCollections = async () => {
+    setGenerateLoading(true)
+    try {
+      const res = await generateCollections()
+      toast.success(`Generated ${res.generated} collections, skipped ${res.skipped} (already existed)`)
+      refreshCollections()
+    } catch (e: any) {
+      toast.error(e?.message || 'Failed to generate collections')
+    } finally {
+      setGenerateLoading(false)
+    }
+  }
+
   const handleProcess = async (collectionId: number) => {
     setActionLoading(true)
     try {
       await processCollection(collectionId)
-      toast.success(`Collection #${collectionId} processed — wallet credited`)
+      toast.success(`Collection #${collectionId} completed — wallet credited`)
       refreshCollections()
     } catch (e: any) {
       toast.error(e?.message || 'Failed to process collection')
@@ -258,7 +273,7 @@ export const AdminPage: React.FC = () => {
           <MetricCard
             title="Total voucher value"
             value={metricsLoading ? '—' : formatCents(metrics?.voucher_total_cents ?? 0)}
-            tooltip="Total value of all processed collection vouchers in euros"
+            tooltip="Total value of all completed collection vouchers in euros"
           />
           <MetricCard
             title="Recurring schedules"
@@ -326,6 +341,13 @@ export const AdminPage: React.FC = () => {
           <div className="flex items-center justify-between gap-3 mb-3">
             <div className="font-semibold">Collections</div>
             <div className="flex items-center gap-2">
+              <button
+                onClick={handleGenerateCollections}
+                disabled={generateLoading}
+                className="text-sm px-3 py-1 rounded bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50"
+              >
+                {generateLoading ? 'Generating…' : 'Generate Recurring Collections'}
+              </button>
               <label className="text-sm opacity-70">Status</label>
               <select
                 className="border rounded px-2 py-1 bg-transparent dark:bg-gray-900 dark:text-gray-100"
@@ -353,6 +375,7 @@ export const AdminPage: React.FC = () => {
                   <thead>
                     <tr className="bg-gray-100 dark:bg-gray-800">
                       <th className="p-2">ID</th>
+                      <th className="p-2">Type</th>
                       <th className="p-2">User</th>
                       <th className="p-2">Return Pt</th>
                       <th className="p-2">Scheduled</th>
@@ -366,6 +389,11 @@ export const AdminPage: React.FC = () => {
                     {collections.map((c) => (
                       <tr key={c.id} className="border-t">
                         <td className="p-2">{c.id}</td>
+                        <td className="p-2">
+                          <span className={`inline-block text-xs px-2 py-0.5 rounded-full ${c.collection_slot_id != null ? 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200' : 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200'}`}>
+                            {c.collection_slot_id != null ? 'Recurring' : 'One-off'}
+                          </span>
+                        </td>
                         <td className="p-2">#{c.user_id}</td>
                         <td className="p-2">#{c.return_point_id}</td>
                         <td className="p-2">{new Date(c.scheduled_at).toLocaleString()}</td>
@@ -422,14 +450,14 @@ export const AdminPage: React.FC = () => {
                               )
                             )}
 
-                            {/* Process action — for collected collections */}
+                            {/* Complete action — for collected collections */}
                             {c.status === 'collected' && (
                               <button
                                 onClick={() => handleProcess(c.id)}
                                 disabled={actionLoading}
                                 className="text-xs px-2 py-0.5 rounded bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-50"
                               >
-                                Process
+                                Complete
                               </button>
                             )}
                           </div>
@@ -735,7 +763,7 @@ const StatusBadge: React.FC<{ status: string }> = ({ status }) => {
     scheduled: 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200',
     assigned: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200',
     collected: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200',
-    processed: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200',
+    completed: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200',
     canceled: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200',
   }
   return (

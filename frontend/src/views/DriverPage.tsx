@@ -6,6 +6,7 @@ import {
   updateDriverProfile,
   fetchDriverCollections,
   markCollected,
+  markCompleted,
   uploadProofImage,
   fetchDriverEarnings,
   fetchDriverPayouts,
@@ -22,7 +23,7 @@ export const DriverPage: React.FC = () => {
   const [earningsLoading, setEarningsLoading] = useState(true)
   const [payoutsLoading, setPayoutsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [statusFilter, setStatusFilter] = useState<'all' | 'assigned' | 'collected'>('all')
+  const [statusFilter, setStatusFilter] = useState<'all' | 'assigned' | 'collected' | 'completed'>('all')
 
   // Profile edit state
   const [editing, setEditing] = useState(false)
@@ -31,8 +32,8 @@ export const DriverPage: React.FC = () => {
   // Availability toggle
   const [toggleLoading, setToggleLoading] = useState(false)
 
-  // Mark collected modal
-  const [markingId, setMarkingId] = useState<number | null>(null)
+  // Mark completed modal
+  const [completingId, setCompletingId] = useState<number | null>(null)
   const [proofFile, setProofFile] = useState<File | null>(null)
   const [proofPreviewUrl, setProofPreviewUrl] = useState<string | null>(null)
   const [voucherEuros, setVoucherEuros] = useState<string>('')
@@ -146,8 +147,21 @@ export const DriverPage: React.FC = () => {
     }
   }
 
-  const handleMarkCollected = async () => {
-    if (markingId === null) return
+  const handleMarkCollected = async (collectionId: number) => {
+    try {
+      await markCollected(collectionId)
+      toast.success('Collection marked as collected')
+      const status = statusFilter === 'all' ? undefined : statusFilter
+      const rows = await fetchDriverCollections(status)
+      setCollections(rows)
+      refreshEarnings()
+    } catch (e: any) {
+      toast.error(e?.message || 'Failed to mark collected')
+    }
+  }
+
+  const handleMarkCompleted = async () => {
+    if (completingId === null) return
     try {
       if (!proofFile) {
         toast.error('Please select a proof image (JPG/PNG).')
@@ -169,19 +183,17 @@ export const DriverPage: React.FC = () => {
       const { url } = await uploadProofImage(proofFile)
 
       setMarkingPhase('submitting')
-      await markCollected(markingId, voucherAmountCents, url)
-      toast.success('Collection marked as collected')
-      setMarkingId(null)
+      await markCompleted(completingId, voucherAmountCents, url)
+      toast.success('Collection marked as completed')
+      setCompletingId(null)
       setProofFile(null)
       setVoucherEuros('')
-      // Refresh collections
       const status = statusFilter === 'all' ? undefined : statusFilter
       const rows = await fetchDriverCollections(status)
       setCollections(rows)
-      // Refresh earnings (an earning row is created on collected)
       refreshEarnings()
     } catch (e: any) {
-      toast.error(e?.message || 'Failed to mark collected')
+      toast.error(e?.message || 'Failed to mark completed')
     } finally {
       setMarkingPhase('idle')
     }
@@ -304,6 +316,7 @@ export const DriverPage: React.FC = () => {
             <option value="all">All</option>
             <option value="assigned">Assigned</option>
             <option value="collected">Collected</option>
+            <option value="completed">Completed</option>
           </select>
         </div>
       </div>
@@ -355,13 +368,25 @@ export const DriverPage: React.FC = () => {
                       {c.status === 'assigned' && (
                         <button
                           onClick={() => {
-                            setMarkingId(c.id)
-                            setProofFile(null)
-                            setVoucherEuros('')
+                            if (window.confirm('Mark this collection as collected?')) {
+                              handleMarkCollected(c.id)
+                            }
                           }}
                           className="text-sm px-3 py-1 rounded bg-emerald-600 text-white hover:bg-emerald-700"
                         >
                           Mark Collected
+                        </button>
+                      )}
+                      {c.status === 'collected' && (
+                        <button
+                          onClick={() => {
+                            setCompletingId(c.id)
+                            setProofFile(null)
+                            setVoucherEuros('')
+                          }}
+                          className="text-sm px-3 py-1 rounded bg-blue-600 text-white hover:bg-blue-700"
+                        >
+                          Mark Completed
                         </button>
                       )}
                     </td>
@@ -373,14 +398,14 @@ export const DriverPage: React.FC = () => {
         )}
       </div>
 
-      {/* Mark Collected Modal */}
-      {markingId !== null && (
+      {/* Mark Completed Modal */}
+      {completingId !== null && (
         <>
           <div
             className="fixed inset-0 bg-black/40 z-40"
             onClick={() => {
               if (markingPhase === 'idle') {
-                setMarkingId(null)
+                setCompletingId(null)
                 setProofFile(null)
                 setVoucherEuros('')
               }
@@ -388,7 +413,7 @@ export const DriverPage: React.FC = () => {
           />
           <div className="fixed inset-0 flex items-center justify-center z-50 p-4">
             <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6 w-full max-w-md">
-              <h3 className="font-semibold mb-3">Mark Collection #{markingId} as Collected</h3>
+              <h3 className="font-semibold mb-3">Mark Collection #{completingId} as Completed</h3>
               <label className="block text-sm opacity-70 mb-1">Voucher Total (€) *</label>
               <input
                 type="number"
@@ -426,7 +451,7 @@ export const DriverPage: React.FC = () => {
               <div className="flex gap-2 justify-end">
                 <button
                   onClick={() => {
-                    setMarkingId(null)
+                    setCompletingId(null)
                     setProofFile(null)
                     setVoucherEuros('')
                   }}
@@ -436,7 +461,7 @@ export const DriverPage: React.FC = () => {
                   Cancel
                 </button>
                 <button
-                  onClick={handleMarkCollected}
+                  onClick={handleMarkCompleted}
                   disabled={markingPhase !== 'idle'}
                   className="text-sm px-4 py-1 rounded bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-50"
                 >
@@ -538,7 +563,7 @@ const StatusBadge: React.FC<{ status: string }> = ({ status }) => {
   const colors: Record<string, string> = {
     assigned: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200',
     collected: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200',
-    processed: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200',
+    completed: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200',
     canceled: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200',
   }
   return (

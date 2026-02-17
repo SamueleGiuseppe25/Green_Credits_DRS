@@ -50,6 +50,11 @@ class Settings(BaseSettings):
     stripe_price_id_monthly: str | None = Field(default=None, description="Stripe Price ID for monthly plan (STRIPE_PRICE_ID_MONTHLY)")
     stripe_price_id_yearly: str | None = Field(default=None, description="Stripe Price ID for yearly plan (STRIPE_PRICE_ID_YEARLY)")
 
+    # Email (Resend)
+    environment: str = Field(default="development", description="Runtime environment: development | production")
+    resend_api_key: str = Field(default="", description="Resend API key (RESEND_API_KEY)")
+    resend_from_email: str = Field(default="", description="Sender email for Resend (RESEND_FROM_EMAIL)")
+
 
 @lru_cache(maxsize=1)
 def get_settings() -> Settings:

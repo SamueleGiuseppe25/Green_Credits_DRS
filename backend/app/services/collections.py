@@ -4,7 +4,9 @@ from typing import Tuple, List
 from sqlalchemy import select, func, and_
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from ..core.events import publish_event
 from ..models import Collection, CollectionSlot, Driver, WalletTransaction
+from ..models.user import User
 from .wallet import credit_wallet_for_collection
 from pathlib import Path
 
@@ -31,7 +33,12 @@ async def create(
 ) -> Collection:
     _validate_scheduled_at(scheduled_at)
     # Block if user has an active recurring slot
-    has_slot = await session.scalar(select(select(CollectionSlot.id).where(CollectionSlot.user_id == user_id).exists()))
+    has_slot = await session.scalar(
+        select(select(CollectionSlot.id).where(
+            CollectionSlot.user_id == user_id,
+            CollectionSlot.status == "active",
+        ).exists())
+    )
     if has_slot:
         raise ValueError("You already have a recurring pickup scheduled. Disable it before creating a one-off collection.")
     # Enforce 1 pickup per ISO week per user (exclude archived/canceled)
@@ -49,6 +56,7 @@ async def create(
             and_(
                 Collection.user_id == user_id,
                 Collection.is_archived == False,  # noqa: E712
+                Collection.collection_slot_id.is_(None),
                 Collection.status != "canceled",
                 Collection.scheduled_at >= week_start,
                 Collection.scheduled_at < week_end,
@@ -101,12 +109,12 @@ async def cancel(session: AsyncSession, user_id: int, id_: int) -> Collection | 
 ALLOWED_TRANSITIONS: dict[str, set[str]] = {
     "scheduled": {"assigned", "canceled"},
     "assigned": {"collected", "canceled"},
-    "collected": {"processed"},
-    "processed": set(),
+    "collected": {"completed", "canceled"},
+    "completed": set(),
     "canceled": set(),
 }
 
-VALID_STATUSES = {"scheduled", "assigned", "collected", "processed", "canceled"}
+VALID_STATUSES = {"scheduled", "assigned", "collected", "completed", "canceled"}
 
 
 async def admin_transition_status(session: AsyncSession, id_: int, new_status: str) -> tuple[Collection | None, str | None]:
@@ -122,8 +130,8 @@ async def admin_transition_status(session: AsyncSession, id_: int, new_status: s
         return col, f"Invalid transition: {current} -> {new_status}"
     col.status = new_status
 
-    # Auto-credit wallet when collection is processed
-    if new_status == "processed":
+    # Auto-credit wallet when collection is completed
+    if new_status == "completed":
         # Idempotency: check if credit already exists for this collection
         existing_credit = await session.scalar(
             select(func.count())
@@ -158,6 +166,30 @@ async def admin_transition_status(session: AsyncSession, id_: int, new_status: s
 
     await session.commit()
     await session.refresh(col)
+
+    # Publish events for admin-triggered completion
+    if new_status == "completed":
+        user = (await session.execute(select(User).where(User.id == col.user_id).limit(1))).scalars().first()
+        if user:
+            await publish_event("collection.completed", {
+                "email": user.email,
+                "collection_id": col.id,
+                "proof_url": col.proof_url or "",
+                "voucher_amount_eur": (col.voucher_amount_cents or 0) / 100,
+            })
+            amount_cents = int(col.voucher_amount_cents or 0)
+            if amount_cents > 0:
+                balance = await session.scalar(
+                    select(func.coalesce(func.sum(WalletTransaction.amount_cents), 0)).where(
+                        WalletTransaction.user_id == col.user_id
+                    )
+                )
+                await publish_event("wallet.credit.created", {
+                    "email": user.email,
+                    "amount_eur": amount_cents / 100,
+                    "new_balance_eur": int(balance or 0) / 100,
+                })
+
     return col, None
 
 
