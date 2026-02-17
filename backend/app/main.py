@@ -4,6 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from .routers import auth, wallet, claims, return_points, simulate, healthz
 from .routers import subscriptions, collection_slots, collections, admin, users
+from .routers import webhooks
 from .routers import admin_stats
 from .services.db import engine, SessionLocal
 from .config import get_settings
@@ -44,6 +45,7 @@ def create_app() -> FastAPI:
     app.include_router(admin.router, prefix="/admin", tags=["Admin"])  # admin-only
     app.include_router(users.router, prefix="/users", tags=["Users"])
     app.include_router(admin_stats.router, prefix="/admin-stats", tags=["AdminStats"])  # admin-only stats
+    app.include_router(webhooks.router, prefix="/webhooks", tags=["Webhooks"])
     @app.get("/")
     async def root():
         return {"name": "GreenCredits API", "version": "0.1.0"}
