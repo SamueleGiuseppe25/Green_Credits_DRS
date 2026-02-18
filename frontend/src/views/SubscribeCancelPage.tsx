@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom'
 
 export const SubscribeCancelPage: React.FC = () => {
   return (
-    <section className="max-w-xl">
+    <section className="max-w-xl mx-auto">
       <h1 className="text-2xl font-bold mb-2">Checkout cancelled</h1>
       <p className="text-sm opacity-70 mb-4">
         No worries — you were not charged. You can try again any time.

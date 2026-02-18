@@ -21,7 +21,7 @@ export const SubscribeSuccessPage: React.FC = () => {
   }, [])
 
   return (
-    <section className="max-w-xl">
+    <section className="max-w-xl mx-auto">
       <h1 className="text-2xl font-bold mb-2">Subscription activated</h1>
       <p className="text-sm opacity-70 mb-4">
         Thanks! Your payment was completed{sessionId ? ` (session ${sessionId}).` : '.'}
