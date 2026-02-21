@@ -12,14 +12,20 @@ import {
   createDriverPayout,
   fetchAllPayouts,
   generateCollections,
+  fetchAdminClaims,
+  updateClaimStatus,
+  sendAdminNotification,
+  fetchAdminNotifications,
   type AdminCollection,
   type AdminMetrics,
   type AdminDriver,
+  type AdminClaim,
+  type AdminNotification,
 } from '../lib/adminApi'
 import type { DriverEarningsBalance, DriverPayout } from '../types/api'
 import { MetricCard } from '../components/MetricCard'
 
-type Tab = 'collections' | 'drivers' | 'payouts'
+type Tab = 'collections' | 'drivers' | 'payouts' | 'claims' | 'notifications'
 type StatusFilter = 'all' | 'scheduled' | 'assigned' | 'collected' | 'completed' | 'cancelled'
 
 export const AdminPage: React.FC = () => {
@@ -54,6 +60,20 @@ export const AdminPage: React.FC = () => {
   // Payout form
   const [payoutAmountCents, setPayoutAmountCents] = useState('')
   const [payoutNote, setPayoutNote] = useState('')
+
+  // Claims tab
+  const [claims, setClaims] = useState<AdminClaim[]>([])
+  const [claimsTotal, setClaimsTotal] = useState(0)
+  const [claimsLoading, setClaimsLoading] = useState(false)
+  const [claimsStatusFilter, setClaimsStatusFilter] = useState<string>('all')
+  const [claimActionLoading, setClaimActionLoading] = useState(false)
+  const [responseInputs, setResponseInputs] = useState<Record<number, string>>({})
+
+  // Notifications tab
+  const [adminNotifications, setAdminNotifications] = useState<AdminNotification[]>([])
+  const [notifLoading, setNotifLoading] = useState(false)
+  const [notifForm, setNotifForm] = useState({ title: '', body: '', userId: '' })
+  const [notifSending, setNotifSending] = useState(false)
 
   const statusParam = useMemo(() => {
     if (statusFilter === 'all') return undefined
@@ -120,6 +140,34 @@ export const AdminPage: React.FC = () => {
   useEffect(() => {
     refreshAllPayouts()
   }, [])
+
+  const refreshClaims = () => {
+    setClaimsLoading(true)
+    const status = claimsStatusFilter === 'all' ? undefined : claimsStatusFilter
+    fetchAdminClaims(status)
+      .then((res) => {
+        setClaims(res.items)
+        setClaimsTotal(res.total)
+      })
+      .catch((e: unknown) => toast.error((e as Error)?.message || 'Failed to load claims'))
+      .finally(() => setClaimsLoading(false))
+  }
+
+  useEffect(() => {
+    if (tab === 'claims') refreshClaims()
+  }, [tab, claimsStatusFilter])
+
+  const refreshAdminNotifications = () => {
+    setNotifLoading(true)
+    fetchAdminNotifications()
+      .then((res) => setAdminNotifications(res.items))
+      .catch((e: unknown) => toast.error((e as Error)?.message || 'Failed to load notifications'))
+      .finally(() => setNotifLoading(false))
+  }
+
+  useEffect(() => {
+    if (tab === 'notifications') refreshAdminNotifications()
+  }, [tab])
 
   const refreshSelectedDriverEarnings = async (driverId: number) => {
     setDriverEarningsLoading(true)
@@ -208,6 +256,39 @@ export const AdminPage: React.FC = () => {
       toast.error(e?.message || 'Failed to process payout')
     } finally {
       setActionLoading(false)
+    }
+  }
+
+  const handleUpdateClaimStatus = async (claimId: number, status: string) => {
+    setClaimActionLoading(true)
+    try {
+      await updateClaimStatus(claimId, status, responseInputs[claimId] || undefined)
+      toast.success(`Claim #${claimId} updated to ${status}`)
+      refreshClaims()
+    } catch (e: unknown) {
+      toast.error((e as Error)?.message || 'Failed to update claim')
+    } finally {
+      setClaimActionLoading(false)
+    }
+  }
+
+  const handleSendNotification = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!notifForm.title || !notifForm.body) {
+      toast.error('Title and body are required')
+      return
+    }
+    const userId = notifForm.userId ? Number(notifForm.userId) : null
+    setNotifSending(true)
+    try {
+      await sendAdminNotification(notifForm.title, notifForm.body, userId)
+      toast.success(userId ? `Notification sent to user #${userId}` : 'Broadcast sent to all users')
+      setNotifForm({ title: '', body: '', userId: '' })
+      refreshAdminNotifications()
+    } catch (e: unknown) {
+      toast.error((e as Error)?.message || 'Failed to send notification')
+    } finally {
+      setNotifSending(false)
     }
   }
 
@@ -333,6 +414,8 @@ export const AdminPage: React.FC = () => {
         <TabButton active={tab === 'collections'} onClick={() => setTab('collections')}>Collections</TabButton>
         <TabButton active={tab === 'drivers'} onClick={() => setTab('drivers')}>Drivers</TabButton>
         <TabButton active={tab === 'payouts'} onClick={() => setTab('payouts')}>Payouts</TabButton>
+        <TabButton active={tab === 'claims'} onClick={() => setTab('claims')}>Claims</TabButton>
+        <TabButton active={tab === 'notifications'} onClick={() => setTab('notifications')}>Notifications</TabButton>
       </div>
 
       {/* ====== COLLECTIONS TAB ====== */}
@@ -741,6 +824,204 @@ export const AdminPage: React.FC = () => {
           </div>
         </>
       )}
+
+      {/* ====== CLAIMS TAB ====== */}
+      {tab === 'claims' && (
+        <>
+          <div className="flex items-center justify-between gap-3 mb-3">
+            <div className="font-semibold">Claims ({claimsTotal})</div>
+            <div className="flex items-center gap-2">
+              <label className="text-sm opacity-70">Status</label>
+              <select
+                className="border rounded px-2 py-1 bg-transparent dark:bg-gray-900 dark:text-gray-100"
+                value={claimsStatusFilter}
+                onChange={(e) => setClaimsStatusFilter(e.target.value)}
+              >
+                <option value="all">All</option>
+                <option value="open">Open</option>
+                <option value="in_review">In Review</option>
+                <option value="resolved">Resolved</option>
+              </select>
+            </div>
+          </div>
+
+          <div className="border rounded-md overflow-hidden">
+            {claimsLoading ? (
+              <div className="p-3 text-sm opacity-70">Loading claims…</div>
+            ) : claims.length === 0 ? (
+              <div className="p-3 text-sm opacity-70">No claims found.</div>
+            ) : (
+              <div className="overflow-auto">
+                <table className="w-full text-left text-sm">
+                  <thead>
+                    <tr className="bg-gray-100 dark:bg-gray-800">
+                      <th className="p-2">ID</th>
+                      <th className="p-2">User</th>
+                      <th className="p-2">Description</th>
+                      <th className="p-2">Status</th>
+                      <th className="p-2">Date</th>
+                      <th className="p-2">Admin Response</th>
+                      <th className="p-2">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {claims.map((c) => (
+                      <tr key={c.id} className="border-t align-top">
+                        <td className="p-2">{c.id}</td>
+                        <td className="p-2">#{c.userId}</td>
+                        <td className="p-2 max-w-xs">
+                          <div className="line-clamp-2 text-xs">{c.description}</div>
+                          {c.imageUrl && (
+                            <a
+                              href={c.imageUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-xs text-blue-600 hover:underline"
+                            >
+                              View image
+                            </a>
+                          )}
+                        </td>
+                        <td className="p-2">
+                          <ClaimStatusBadge status={c.status} />
+                        </td>
+                        <td className="p-2 text-xs">{new Date(c.createdAt).toLocaleString()}</td>
+                        <td className="p-2 text-xs max-w-xs">
+                          <textarea
+                            className="w-full border rounded px-1 py-0.5 text-xs bg-transparent dark:bg-gray-900 resize-none"
+                            rows={2}
+                            placeholder="Write response…"
+                            value={responseInputs[c.id] ?? c.adminResponse ?? ''}
+                            onChange={(e) =>
+                              setResponseInputs((prev) => ({ ...prev, [c.id]: e.target.value }))
+                            }
+                          />
+                        </td>
+                        <td className="p-2">
+                          <div className="flex flex-col gap-1">
+                            {c.status !== 'in_review' && (
+                              <button
+                                onClick={() => handleUpdateClaimStatus(c.id, 'in_review')}
+                                disabled={claimActionLoading}
+                                className="text-xs px-2 py-0.5 rounded bg-yellow-500 text-white hover:bg-yellow-600 disabled:opacity-50"
+                              >
+                                In Review
+                              </button>
+                            )}
+                            {c.status !== 'resolved' && (
+                              <button
+                                onClick={() => handleUpdateClaimStatus(c.id, 'resolved')}
+                                disabled={claimActionLoading}
+                                className="text-xs px-2 py-0.5 rounded bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-50"
+                              >
+                                Resolve
+                              </button>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        </>
+      )}
+
+      {/* ====== NOTIFICATIONS TAB ====== */}
+      {tab === 'notifications' && (
+        <>
+          <div className="font-semibold mb-3">Send Notification</div>
+          <form
+            onSubmit={handleSendNotification}
+            className="border rounded-md p-4 mb-6 grid grid-cols-1 sm:grid-cols-2 gap-3"
+          >
+            <div>
+              <label className="block text-xs opacity-70 mb-1">Title *</label>
+              <input
+                className="w-full border rounded px-2 py-1 bg-transparent dark:bg-gray-900"
+                value={notifForm.title}
+                onChange={(e) => setNotifForm((f) => ({ ...f, title: e.target.value }))}
+                placeholder="e.g. Service update"
+                required
+              />
+            </div>
+            <div>
+              <label className="block text-xs opacity-70 mb-1">
+                User ID (leave blank to broadcast to all)
+              </label>
+              <input
+                className="w-full border rounded px-2 py-1 bg-transparent dark:bg-gray-900"
+                value={notifForm.userId}
+                onChange={(e) => setNotifForm((f) => ({ ...f, userId: e.target.value }))}
+                placeholder="e.g. 42 — or empty for broadcast"
+                type="number"
+              />
+            </div>
+            <div className="sm:col-span-2">
+              <label className="block text-xs opacity-70 mb-1">Body *</label>
+              <textarea
+                className="w-full border rounded px-2 py-1 bg-transparent dark:bg-gray-900 resize-none"
+                rows={3}
+                value={notifForm.body}
+                onChange={(e) => setNotifForm((f) => ({ ...f, body: e.target.value }))}
+                placeholder="Notification message…"
+                required
+              />
+            </div>
+            <div className="sm:col-span-2">
+              <button
+                type="submit"
+                disabled={notifSending}
+                className="text-sm px-4 py-1.5 rounded bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-50"
+              >
+                {notifSending ? 'Sending…' : 'Send Notification'}
+              </button>
+            </div>
+          </form>
+
+          <div className="font-semibold mb-3">Sent Notifications</div>
+          <div className="border rounded-md overflow-hidden">
+            {notifLoading ? (
+              <div className="p-3 text-sm opacity-70">Loading…</div>
+            ) : adminNotifications.length === 0 ? (
+              <div className="p-3 text-sm opacity-70">No notifications sent yet.</div>
+            ) : (
+              <div className="overflow-auto">
+                <table className="w-full text-left text-sm">
+                  <thead>
+                    <tr className="bg-gray-100 dark:bg-gray-800">
+                      <th className="p-2">ID</th>
+                      <th className="p-2">Recipient</th>
+                      <th className="p-2">Title</th>
+                      <th className="p-2">Body</th>
+                      <th className="p-2">Date</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {adminNotifications.map((n) => (
+                      <tr key={n.id} className="border-t">
+                        <td className="p-2">{n.id}</td>
+                        <td className="p-2">
+                          {n.userId ? (
+                            `User #${n.userId}`
+                          ) : (
+                            <span className="text-xs opacity-70 italic">Broadcast</span>
+                          )}
+                        </td>
+                        <td className="p-2 font-medium">{n.title}</td>
+                        <td className="p-2 text-xs opacity-80 max-w-xs line-clamp-2">{n.body}</td>
+                        <td className="p-2 text-xs">{new Date(n.createdAt).toLocaleString()}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        </>
+      )}
     </section>
   )
 }
@@ -769,6 +1050,21 @@ const StatusBadge: React.FC<{ status: string }> = ({ status }) => {
   return (
     <span className={`inline-block text-xs px-2 py-0.5 rounded-full ${colors[status] || 'bg-gray-100 text-gray-800'}`}>
       {status}
+    </span>
+  )
+}
+
+const ClaimStatusBadge: React.FC<{ status: string }> = ({ status }) => {
+  const colors: Record<string, string> = {
+    open: 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200',
+    in_review: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200',
+    resolved: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200',
+  }
+  return (
+    <span
+      className={`inline-block text-xs px-2 py-0.5 rounded-full ${colors[status] || 'bg-gray-100 text-gray-800'}`}
+    >
+      {status.replace('_', ' ')}
     </span>
   )
 }

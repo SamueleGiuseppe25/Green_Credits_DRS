@@ -19,10 +19,13 @@ class Collection(Base):
 
     bag_count: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
     notes: Mapped[str | None] = mapped_column(String(1024), nullable=True)
+    pickup_address: Mapped[str | None] = mapped_column(String(512), nullable=True)
 
     driver_id: Mapped[int | None] = mapped_column(Integer, nullable=True, index=True)
     proof_url: Mapped[str | None] = mapped_column(String(512), nullable=True)
     voucher_amount_cents: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    voucher_preference: Mapped[str | None] = mapped_column(String(8), nullable=True)  # "wallet" | "donate"
+    charity_id: Mapped[str | None] = mapped_column(String(64), nullable=True)
 
     is_archived: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False, server_default="0")
 

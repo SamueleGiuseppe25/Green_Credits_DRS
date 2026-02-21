@@ -1,4 +1,5 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
+import { useQueryClient } from '@tanstack/react-query'
 import { AuthUser, getUser as fetchUser, getToken as readToken, login as doLogin, logout as doLogout, setToken as writeToken } from '../lib/auth'
 
 type AuthContextValue = {
@@ -58,11 +59,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }, [refreshUser])
 
+  const qc = useQueryClient()
   const logout = useCallback(() => {
     doLogout()
     setToken(null)
     setUser(null)
-  }, [])
+    qc.clear()
+  }, [qc])
 
   const isAuthenticated = Boolean(token && user)
 

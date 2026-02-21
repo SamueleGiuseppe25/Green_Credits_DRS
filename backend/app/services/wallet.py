@@ -9,7 +9,8 @@ from ..models import WalletTransaction
 
 async def get_balance(session: AsyncSession, user_id: int) -> Tuple[int, datetime]:
     sum_stmt = select(func.coalesce(func.sum(WalletTransaction.amount_cents), 0)).where(
-        WalletTransaction.user_id == user_id
+        WalletTransaction.user_id == user_id,
+        WalletTransaction.kind != "donation",
     )
     balance_cents = await session.scalar(sum_stmt)
     ts_stmt = (

@@ -78,7 +78,7 @@ export interface CollectionSlot {
   endTime: string
   preferredReturnPointId: number | null
   frequency: 'weekly' | 'fortnightly' | 'every_2_weeks' | 'monthly'
-  status?: 'active' | 'paused' | 'cancelled'
+  status?: 'active' | 'paused' | 'cancelled' | 'canceled'
   enabled?: boolean
 }
 
@@ -90,9 +90,12 @@ export interface Collection {
   status: string
   bagCount?: number
   notes?: string | null
+  pickupAddress?: string | null
   driverId?: number | null
   proofUrl?: string | null
   voucherAmountCents?: number | null
+  voucherPreference?: 'wallet' | 'donate' | null
+  charityId?: string | null
   createdAt: string
   updatedAt: string
 }
@@ -121,9 +124,12 @@ export interface DriverCollection {
   status: string
   bagCount: number
   notes: string | null
+  pickupAddress?: string | null
   driverId: number | null
   proofUrl: string | null
   voucherAmountCents?: number | null
+  voucherPreference?: 'wallet' | 'donate' | null
+  charityId?: string | null
   createdAt: string
   updatedAt: string
 }
@@ -155,6 +161,38 @@ export interface PendingClaimItem {
   retailer?: string
   amountCents?: number
   ts?: string
+}
+
+// Claims (Task 3a)
+export interface Claim {
+  id: number
+  userId: number
+  description: string
+  imageUrl?: string | null
+  status: 'open' | 'in_review' | 'resolved' | string
+  adminResponse?: string | null
+  createdAt: string
+  updatedAt: string
+}
+
+export interface ClaimsListResponse {
+  items: Claim[]
+  total: number
+}
+
+// Notifications (Task 3b)
+export interface Notification {
+  id: number
+  userId: number | null // null = broadcast
+  title: string
+  body: string
+  isRead: boolean
+  createdAt: string
+}
+
+export interface NotificationsListResponse {
+  items: Notification[]
+  total: number
 }
 
 

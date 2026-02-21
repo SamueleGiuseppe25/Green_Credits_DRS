@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { useAuth } from '../context/AuthContext'
 import { useMySubscription } from '../hooks/useSubscription'
 import toast from 'react-hot-toast'
@@ -11,8 +11,50 @@ export const SettingsPage: React.FC = () => {
   const sub = useMySubscription()
   const navigate = useNavigate()
   const [name, setName] = useState<string>(user?.full_name || '')
+  const [address, setAddress] = useState<string>(user?.address || '')
   const [saving, setSaving] = useState(false)
+
+  useEffect(() => {
+    setName(user?.full_name || '')
+    setAddress(user?.address || '')
+  }, [user])
   const [deleting, setDeleting] = useState(false)
+  const [showCancelSubModal, setShowCancelSubModal] = useState(false)
+  const [showDeleteModal, setShowDeleteModal] = useState(false)
+  const [cancelingSub, setCancelingSub] = useState(false)
+
+  const handleCancelSubscription = async () => {
+    setCancelingSub(true)
+    try {
+      const res = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'}/subscriptions/cancel`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${localStorage.getItem('gc_access_token') || ''}` },
+      })
+      if (!res.ok) throw new Error(await res.text())
+      toast.success('Subscription canceled')
+      setShowCancelSubModal(false)
+      sub.refetch()
+    } catch (e: unknown) {
+      toast.error((e as Error)?.message || 'Could not cancel subscription')
+    } finally {
+      setCancelingSub(false)
+    }
+  }
+
+  const handleDeleteAccount = async () => {
+    setDeleting(true)
+    try {
+      await apiFetch<void>('/users/me', { method: 'DELETE' })
+      setShowDeleteModal(false)
+      logout()
+      navigate('/', { replace: true })
+    } catch (err: unknown) {
+      toast.error((err as Error)?.message || 'Could not delete account')
+    } finally {
+      setDeleting(false)
+    }
+  }
+
   return (
     <section>
       <h1 className="text-2xl font-bold mb-4">Settings</h1>
@@ -27,7 +69,7 @@ export const SettingsPage: React.FC = () => {
               try {
                 await apiFetch<{ ok: boolean }>('/users/me', {
                   method: 'PATCH',
-                  body: JSON.stringify({ full_name: name || null }),
+                  body: JSON.stringify({ full_name: name || null, address: address || null }),
                 })
                 await refreshUser()
                 toast.success('Account details updated')
@@ -47,6 +89,16 @@ export const SettingsPage: React.FC = () => {
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 placeholder="Your name"
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-2 items-center">
+              <label className="opacity-70">Address</label>
+              <input
+                type="text"
+                className="border rounded px-2 py-1 bg-transparent dark:bg-gray-900 dark:text-gray-100"
+                value={address}
+                onChange={(e) => setAddress(e.target.value)}
+                placeholder="Home address for pickups"
               />
             </div>
             <div className="flex items-center gap-2 pt-1">
@@ -101,16 +153,7 @@ export const SettingsPage: React.FC = () => {
                 </button>
                 <button
                   className="text-sm px-3 py-1 rounded border hover:bg-gray-100 dark:hover:bg-gray-700"
-                  onClick={async () => {
-                    try {
-                      const res = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'}/subscriptions/cancel`, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${localStorage.getItem('gc_access_token') || ''}` } })
-                      if (!res.ok) throw new Error(await res.text())
-                      toast.success('Subscription canceled')
-                      sub.refetch()
-                    } catch (e: any) {
-                      toast.error(e?.message || 'Could not cancel subscription')
-                    }
-                  }}
+                  onClick={() => setShowCancelSubModal(true)}
                 >
                   Cancel subscription
                 </button>
@@ -149,24 +192,80 @@ export const SettingsPage: React.FC = () => {
           <button
             className="text-sm px-3 py-1 rounded border border-red-600 text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20 disabled:opacity-50"
             disabled={deleting}
-            onClick={async () => {
-              if (!window.confirm('Are you sure you want to delete your account? This action cannot be undone.')) return
-              setDeleting(true)
-              try {
-                await apiFetch<void>('/users/me', { method: 'DELETE' })
-                logout()
-                navigate('/', { replace: true })
-              } catch (err: any) {
-                toast.error(err?.message || 'Could not delete account')
-              } finally {
-                setDeleting(false)
-              }
-            }}
+            onClick={() => setShowDeleteModal(true)}
           >
             {deleting ? 'Deleting…' : 'Delete account'}
           </button>
         </div>
       </div>
+
+      {/* Cancel Subscription Modal */}
+      {showCancelSubModal && (
+        <>
+          <div
+            className="fixed inset-0 bg-black/40 z-40"
+            onClick={() => setShowCancelSubModal(false)}
+          />
+          <div className="fixed inset-0 flex items-center justify-center z-50 p-4">
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6 w-full max-w-md">
+              <h3 className="font-semibold mb-3">Cancel Subscription?</h3>
+              <p className="text-sm text-gray-600 dark:text-gray-400 mb-6">
+                Your subscription will be cancelled immediately. You can resubscribe at any time.
+              </p>
+              <div className="flex gap-2 justify-end">
+                <button
+                  onClick={() => setShowCancelSubModal(false)}
+                  disabled={cancelingSub}
+                  className="text-sm px-3 py-1 rounded border hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-50"
+                >
+                  Keep Subscription
+                </button>
+                <button
+                  onClick={handleCancelSubscription}
+                  disabled={cancelingSub}
+                  className="text-sm px-4 py-1 rounded bg-red-600 text-white hover:bg-red-700 disabled:opacity-50"
+                >
+                  {cancelingSub ? 'Canceling…' : 'Cancel Subscription'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* Delete Account Modal */}
+      {showDeleteModal && (
+        <>
+          <div
+            className="fixed inset-0 bg-black/40 z-40"
+            onClick={() => !deleting && setShowDeleteModal(false)}
+          />
+          <div className="fixed inset-0 flex items-center justify-center z-50 p-4">
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6 w-full max-w-md">
+              <h3 className="font-semibold mb-3">Delete Account?</h3>
+              <p className="text-sm text-gray-600 dark:text-gray-400 mb-6">
+                This action is permanent and cannot be undone. All your data will be deleted.
+              </p>
+              <div className="flex gap-2 justify-end">
+                <button
+                  onClick={() => setShowDeleteModal(false)}
+                  disabled={deleting}
+                  className="text-sm px-3 py-1 rounded border hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-50"
+                >
+                  Keep Account
+                </button>
+                <button
+                  onClick={handleDeleteAccount}
+                  disabled={deleting}
+                  className="text-sm px-4 py-1 rounded bg-red-600 text-white hover:bg-red-700 disabled:opacity-50"
+                >
+                  {deleting ? 'Deleting…' : 'Delete Account'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </>
+      )}
     </section>
   )
 }

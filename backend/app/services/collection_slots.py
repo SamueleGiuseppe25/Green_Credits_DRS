@@ -16,7 +16,14 @@ def _validate_service_time(value: time_cls) -> None:
 
 
 async def get_me(session: AsyncSession, user_id: int) -> CollectionSlot | None:
-    stmt = select(CollectionSlot).where(CollectionSlot.user_id == user_id).limit(1)
+    stmt = (
+        select(CollectionSlot)
+        .where(
+            CollectionSlot.user_id == user_id,
+            CollectionSlot.status.in_(["active", "paused"]),
+        )
+        .limit(1)
+    )
     return (await session.execute(stmt)).scalars().first()
 
 

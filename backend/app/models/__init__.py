@@ -8,6 +8,8 @@ from .wallet_transaction import WalletTransaction
 from .driver import Driver
 from .driver_earning import DriverEarning
 from .driver_payout import DriverPayout
+from .claim import Claim
+from .notification import Notification
 
 __all__ = [
     "User",
@@ -20,6 +22,8 @@ __all__ = [
     "Driver",
     "DriverEarning",
     "DriverPayout",
+    "Claim",
+    "Notification",
 ]
 
 

@@ -24,6 +24,8 @@ export interface CreateCollectionPayload {
   returnPointId: number
   bagCount?: number
   notes?: string | null
+  voucherPreference?: 'wallet' | 'donate'
+  charityId?: string
 }
 
 export function useCreateCollection() {

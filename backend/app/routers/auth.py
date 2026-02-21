@@ -44,6 +44,7 @@ async def me(user: User = Depends(get_current_user)) -> UserOut:
         id=user.id,
         email=user.email,
         full_name=user.full_name,
+        address=user.address,
         is_active=True,
         is_admin=getattr(user, "is_admin", False),
         is_driver=getattr(user, "is_driver", False),

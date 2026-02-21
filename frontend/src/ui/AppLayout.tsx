@@ -1,8 +1,10 @@
-import React from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import { Link, NavLink, Outlet, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { Toaster } from 'react-hot-toast'
-import { Wallet, Ticket, Map as MapIcon, Recycle, Settings as SettingsIcon, Shield, Truck, Menu, X } from 'lucide-react'
+import { Wallet, Ticket, Map as MapIcon, Recycle, Settings as SettingsIcon, Shield, Truck, Menu, X, Bell } from 'lucide-react'
+import { fetchMyNotifications, markNotificationRead } from '../lib/notificationsApi'
+import type { Notification } from '../types/api'
 
 type SidebarNavItem = {
   to: string
@@ -94,6 +96,9 @@ export const AppLayout: React.FC = () => {
         </button>
         <h1 className="text-lg font-semibold">GreenCredits</h1>
         <div className="ml-auto flex items-center gap-4">
+          {isAuthenticated && !isAdmin && !isDriver && (
+            <NotificationBell />
+          )}
           {isAuthenticated && user && (
             <span className="text-sm opacity-70">{user.email}</span>
           )}
@@ -160,5 +165,103 @@ const NavItem: React.FC<{ to: string; label: string; collapsed?: boolean; icon?:
     {!collapsed && <span>{label}</span>}
   </NavLink>
 )
+
+const NotificationBell: React.FC = () => {
+  const [open, setOpen] = useState(false)
+  const [notifications, setNotifications] = useState<Notification[]>([])
+  const [loading, setLoading] = useState(false)
+  const wrapperRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (open) {
+      setLoading(true)
+      fetchMyNotifications()
+        .then(setNotifications)
+        .catch(() => setNotifications([]))
+        .finally(() => setLoading(false))
+    }
+  }, [open])
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (wrapperRef.current && !wrapperRef.current.contains(e.target as Node)) {
+        setOpen(false)
+      }
+    }
+    if (open) {
+      document.addEventListener('mousedown', handleClickOutside)
+      return () => document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [open])
+
+  const unreadCount = notifications.filter((n) => !n.isRead && n.userId !== null).length
+
+  const handleMarkRead = async (n: Notification) => {
+    if (n.isRead || n.userId === null) return
+    try {
+      const updated = await markNotificationRead(n.id)
+      setNotifications((prev) =>
+        prev.map((x) => (x.id === n.id ? updated : x))
+      )
+    } catch {
+      // ignore
+    }
+  }
+
+  return (
+    <div className="relative" ref={wrapperRef}>
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        className="relative p-2 rounded hover:bg-gray-100 dark:hover:bg-gray-700"
+        aria-label="Notifications"
+      >
+        <Bell className="h-5 w-5" />
+        {unreadCount > 0 && (
+          <span className="absolute -top-0.5 -right-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 text-[10px] font-medium text-white px-1">
+            {unreadCount}
+          </span>
+        )}
+      </button>
+      {open && (
+        <div className="absolute right-0 top-full mt-1 w-80 max-h-96 overflow-auto rounded-md border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-lg z-50">
+          {loading ? (
+            <div className="p-3 text-sm opacity-70">Loading…</div>
+          ) : notifications.length === 0 ? (
+            <div className="p-3 text-sm opacity-70">No notifications yet.</div>
+          ) : (
+            <div className="divide-y divide-gray-200 dark:divide-gray-700">
+              {notifications.map((n) => (
+                <div
+                  key={n.id}
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => handleMarkRead(n)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') handleMarkRead(n)
+                  }}
+                  className="p-3 text-left hover:bg-gray-50 dark:hover:bg-gray-700/50 cursor-pointer"
+                >
+                  <div className="flex items-start gap-2">
+                    {!n.isRead && n.userId !== null && (
+                      <span className="shrink-0 mt-1.5 w-2 h-2 rounded-full bg-green-500" />
+                    )}
+                    <div className="min-w-0 flex-1">
+                      <div className="font-medium text-sm">{n.title}</div>
+                      <div className="text-xs opacity-80 line-clamp-2 mt-0.5">{n.body}</div>
+                      <div className="text-xs opacity-60 mt-1">
+                        {new Date(n.createdAt).toLocaleString()}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
 
 

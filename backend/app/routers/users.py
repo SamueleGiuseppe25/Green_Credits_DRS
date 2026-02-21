@@ -11,7 +11,8 @@ router = APIRouter()
 
 
 class UpdateMeRequest(BaseModel):
-  full_name: str | None = None
+    full_name: str | None = None
+    address: str | None = None
 
 
 @router.patch("/me")
@@ -24,6 +25,7 @@ async def update_me(
     if user is None:
         raise HTTPException(status_code=404, detail="User not found")
     user.full_name = payload.full_name
+    user.address = payload.address
     await session.commit()
     return {"ok": True}
 

@@ -98,6 +98,7 @@ class UserOut(BaseModel):
     id: int
     email: str
     full_name: Optional[str] = None
+    address: Optional[str] = None
     is_active: Optional[bool] = True
     is_admin: Optional[bool] = False
     is_driver: Optional[bool] = False
@@ -169,3 +170,53 @@ class DriverPayoutOut(BaseModel):
 class CreatePayoutRequest(BaseModel):
     amountCents: int
     note: Optional[str] = None
+
+
+class ClaimCreate(BaseModel):
+    description: str
+    imageUrl: Optional[str] = None
+
+
+class ClaimOut(BaseModel):
+    id: int
+    userId: int
+    description: str
+    imageUrl: Optional[str] = None
+    status: str
+    adminResponse: Optional[str] = None
+    createdAt: datetime
+    updatedAt: datetime
+
+    model_config = {"from_attributes": True}
+
+
+class ClaimStatusUpdate(BaseModel):
+    status: str  # open | in_review | resolved
+    adminResponse: Optional[str] = None
+
+
+class ClaimsListResponse(BaseModel):
+    items: List["ClaimOut"]
+    total: int
+
+
+class NotificationOut(BaseModel):
+    id: int
+    userId: Optional[int] = None
+    title: str
+    body: str
+    isRead: bool
+    createdAt: datetime
+
+    model_config = {"from_attributes": True}
+
+
+class NotificationCreate(BaseModel):
+    userId: Optional[int] = None  # None = broadcast
+    title: str
+    body: str
+
+
+class NotificationsListResponse(BaseModel):
+    items: List["NotificationOut"]
+    total: int

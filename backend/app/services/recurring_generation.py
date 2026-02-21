@@ -8,6 +8,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..models import Collection, CollectionSlot
+from ..models.user import User
 
 
 def _get_occurrence_dates(
@@ -78,6 +79,12 @@ async def generate_collections(
         )
     ).scalars().all()
 
+    user_ids = list({slot.user_id for slot in slots})
+    user_rows = (
+        await session.execute(select(User.id, User.address).where(User.id.in_(user_ids)))
+    ).all()
+    user_address_map = {row[0]: row[1] for row in user_rows}
+
     for slot in slots:
         if slot.preferred_return_point_id is None:
             continue
@@ -114,6 +121,7 @@ async def generate_collections(
                 status="scheduled",
                 bag_count=1,
                 notes=None,
+                pickup_address=user_address_map.get(slot.user_id),
                 collection_slot_id=slot.id,
                 driver_id=None,
             )

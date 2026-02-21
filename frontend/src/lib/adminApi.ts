@@ -142,3 +142,75 @@ export function generateCollections(): Promise<GenerateCollectionsResponse> {
     method: 'POST',
   })
 }
+
+// ----- Claims admin -----
+export type AdminClaim = {
+  id: number
+  userId: number
+  description: string
+  imageUrl: string | null
+  status: string
+  adminResponse: string | null
+  createdAt: string
+  updatedAt: string
+}
+
+export type AdminClaimsResponse = {
+  items: AdminClaim[]
+  total: number
+}
+
+export function fetchAdminClaims(
+  status?: string,
+  page = 1,
+  pageSize = 20
+): Promise<AdminClaimsResponse> {
+  const params = new URLSearchParams({ page: String(page), page_size: String(pageSize) })
+  if (status) params.set('status', status)
+  return adminFetch<AdminClaimsResponse>(`/admin/claims?${params}`)
+}
+
+export function updateClaimStatus(
+  claimId: number,
+  status: string,
+  adminResponse?: string
+): Promise<AdminClaim> {
+  return adminFetch<AdminClaim>(`/admin/claims/${claimId}/status`, {
+    method: 'PATCH',
+    body: JSON.stringify({ status, adminResponse: adminResponse || null }),
+  })
+}
+
+// ----- Notifications admin -----
+export type AdminNotification = {
+  id: number
+  userId: number | null
+  title: string
+  body: string
+  isRead: boolean
+  createdAt: string
+}
+
+export type AdminNotificationsResponse = {
+  items: AdminNotification[]
+  total: number
+}
+
+export function sendAdminNotification(
+  title: string,
+  body: string,
+  userId?: number | null
+): Promise<AdminNotification> {
+  return adminFetch<AdminNotification>('/admin/notifications', {
+    method: 'POST',
+    body: JSON.stringify({ title, body, userId: userId ?? null }),
+  })
+}
+
+export function fetchAdminNotifications(
+  page = 1,
+  pageSize = 50
+): Promise<AdminNotificationsResponse> {
+  const params = new URLSearchParams({ page: String(page), page_size: String(pageSize) })
+  return adminFetch<AdminNotificationsResponse>(`/admin/notifications?${params}`)
+}

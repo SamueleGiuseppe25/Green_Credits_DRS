@@ -6,7 +6,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.staticfiles import StaticFiles
 
-from .routers import auth, wallet, claims, return_points, simulate, healthz
+from .routers import auth, wallet, claims, notifications, return_points, simulate, healthz
 from .routers import subscriptions, collection_slots, collections, admin, users
 from .routers import payments, stripe_webhooks, drivers, uploads
 from .services.db import engine, SessionLocal
@@ -51,6 +51,7 @@ def create_app() -> FastAPI:
     app.include_router(collection_slots.router, prefix="/collection-slots", tags=["CollectionSlots"])
     app.include_router(collections.router, prefix="/collections", tags=["Collections"])
     app.include_router(claims.router, prefix="/claims", tags=["Claims"])
+    app.include_router(notifications.router, prefix="/notifications", tags=["Notifications"])
     app.include_router(return_points.router, prefix="/return-points", tags=["ReturnPoints"])
     app.include_router(simulate.router, prefix="/simulate", tags=["Simulator"])
     app.include_router(healthz.router, tags=["Health"])  # /health and /healthz

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useCallback, useRef } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import toast from 'react-hot-toast'
@@ -17,10 +17,31 @@ import {
   MapPin,
 } from 'lucide-react'
 
+const JOURNEY_STEPS = [
+  {
+    title: 'Subscribe to a Plan',
+    desc: 'Choose weekly, monthly, or yearly. Your subscription covers unlimited pickups within your plan — no hidden fees.',
+    image: '/images/hero-recycling.jpg',
+  },
+  {
+    title: 'Schedule Your Pickup',
+    desc: 'Pick a day and time that suits you. Leave your bags out — our driver handles the rest.',
+    image: '/images/blog-our-story.jpg',
+  },
+  {
+    title: 'Earn Green Credits',
+    desc: 'Once your bottles are processed at a return point, credits land in your wallet. Spend them or donate to a cause.',
+    image: '/images/blog-recycling-energy.jpg',
+  },
+]
+
 export const LandingPage: React.FC = () => {
   const { isAuthenticated, loading, user } = useAuth()
   const navigate = useNavigate()
   const [email, setEmail] = useState('')
+  const [journeyStep, setJourneyStep] = useState(0)
+  const [stepOpacity, setStepOpacity] = useState(100)
+  const journeyIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
   useEffect(() => {
     if (!loading && isAuthenticated) {
@@ -28,6 +49,36 @@ export const LandingPage: React.FC = () => {
       navigate(dest, { replace: true })
     }
   }, [isAuthenticated, loading, navigate, user])
+
+  const advanceStep = useCallback(() => {
+    setStepOpacity(0)
+    setTimeout(() => {
+      setJourneyStep((s) => (s + 1) % 3)
+      setStepOpacity(100)
+    }, 200)
+  }, [])
+
+  const goToStep = useCallback((idx: number) => {
+    if (journeyIntervalRef.current) {
+      clearInterval(journeyIntervalRef.current)
+      journeyIntervalRef.current = null
+    }
+    setStepOpacity(0)
+    setTimeout(() => {
+      setJourneyStep(idx)
+      setStepOpacity(100)
+      journeyIntervalRef.current = setInterval(advanceStep, 3000)
+    }, 200)
+  }, [advanceStep])
+
+  useEffect(() => {
+    journeyIntervalRef.current = setInterval(advanceStep, 3000)
+    return () => {
+      if (journeyIntervalRef.current) {
+        clearInterval(journeyIntervalRef.current)
+      }
+    }
+  }, [advanceStep])
 
   const handleNewsletter = (e: React.FormEvent) => {
     e.preventDefault()
@@ -61,7 +112,7 @@ export const LandingPage: React.FC = () => {
                   to="/signup"
                   className="inline-flex items-center gap-2 px-6 py-3 rounded-lg bg-emerald-600 text-white font-medium hover:bg-emerald-700 transition-colors"
                 >
-                  Get Started Free <ArrowRight className="h-4 w-4" />
+                  Start Collecting <ArrowRight className="h-4 w-4" />
                 </Link>
                 <a
                   href="#how-it-works"
@@ -70,9 +121,6 @@ export const LandingPage: React.FC = () => {
                   Learn More
                 </a>
               </div>
-              <p className="text-sm text-gray-500 dark:text-gray-500">
-                No credit card required for trial
-              </p>
             </div>
 
             <div className="flex items-center justify-center">
@@ -107,6 +155,54 @@ export const LandingPage: React.FC = () => {
                 <MapPin className="h-7 w-7 text-emerald-600" /> 50+
               </div>
               <p className="text-sm text-gray-600 dark:text-gray-400">Return Points</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ── Your Journey with GreenCredits ── */}
+      <section className="py-20">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <h2 className="text-3xl md:text-4xl font-bold text-gray-900 dark:text-white mb-10 text-center">
+            Your Journey with GreenCredits
+          </h2>
+          <div className="grid lg:grid-cols-2 gap-12 items-center">
+            <div>
+              <div className="flex gap-2 mb-6">
+                {[0, 1, 2].map((i) => (
+                  <button
+                    key={i}
+                    type="button"
+                    onClick={() => goToStep(i)}
+                    className={`w-10 h-10 rounded-full font-semibold transition-colors ${
+                      journeyStep === i
+                        ? 'bg-emerald-600 text-white'
+                        : 'bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
+                    }`}
+                  >
+                    {i + 1}
+                  </button>
+                ))}
+              </div>
+              <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
+                {JOURNEY_STEPS[journeyStep].title}
+              </h3>
+              <p
+                className={`text-gray-600 dark:text-gray-400 transition-opacity duration-500 ${
+                  stepOpacity === 100 ? 'opacity-100' : 'opacity-0'
+                }`}
+              >
+                {JOURNEY_STEPS[journeyStep].desc}
+              </p>
+            </div>
+            <div className="flex justify-center">
+              <img
+                src={JOURNEY_STEPS[journeyStep].image}
+                alt={JOURNEY_STEPS[journeyStep].title}
+                className={`w-full aspect-video rounded-2xl object-cover transition-opacity duration-500 ${
+                  stepOpacity === 100 ? 'opacity-100' : 'opacity-0'
+                }`}
+              />
             </div>
           </div>
         </div>
@@ -207,25 +303,25 @@ export const LandingPage: React.FC = () => {
             {[
               {
                 name: 'Weekly',
-                price: '€2.99',
+                price: '€2.00',
                 period: '/week',
-                desc: 'Perfect for trying out',
+                desc: 'Perfect for occasional recyclers',
                 features: ['1 pickup per week', 'Up to 2 bags', 'Wallet credits', 'Email support'],
                 popular: false,
               },
               {
                 name: 'Monthly',
-                price: '€9.99',
+                price: '€7.00',
                 period: '/month',
                 desc: 'Most popular choice',
-                features: ['4 pickups per month', 'Up to 5 bags each', 'Wallet credits', 'Priority support', 'Donation option'],
+                features: ['Flexible monthly billing', 'Up to 5 bags each', 'Wallet credits', 'Priority support', 'Donation option'],
                 popular: true,
               },
               {
                 name: 'Yearly',
-                price: '€89.99',
+                price: '€70.00',
                 period: '/year',
-                desc: 'Best value — save 25%',
+                desc: 'Best value — lowest per-month cost',
                 features: ['Unlimited pickups', 'Up to 10 bags each', 'Wallet credits', 'Priority support', 'Donation option', 'Early access to features'],
                 popular: false,
               },
@@ -265,7 +361,7 @@ export const LandingPage: React.FC = () => {
                       : 'border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700'
                   }`}
                 >
-                  Get Started
+                  Choose Plan
                 </Link>
               </div>
             ))}
@@ -288,27 +384,31 @@ export const LandingPage: React.FC = () => {
           <div className="grid md:grid-cols-3 gap-8">
             {[
               {
-                title: 'How Bottle Recycling Saves Energy',
-                excerpt: 'Recycling a single aluminium can saves enough energy to power a TV for three hours. Learn how your collections make a real difference.',
-                date: 'Feb 5, 2026',
+                title: "How Ireland's DRS Scheme Works",
+                excerpt: "Ireland's Deposit Return Scheme (DRS) puts a small deposit on plastic bottles and cans. Return them at certified points and get your money back — or let GreenCredits do it for you.",
+                date: 'Feb 10, 2026',
                 image: '/images/blog-recycling-energy.jpg',
+                linkHref: 'https://www.re-turn.ie',
               },
               {
-                title: 'GreenCredits Launch: Our Story',
-                excerpt: 'From a university project to a working platform — here\'s how GreenCredits came to be and where we\'re headed next.',
+                title: 'Why Subscription Recycling Makes a Difference',
+                excerpt: 'A single missed collection adds up. Regular, scheduled pickups mean fewer bottles going to landfill and more credits in your wallet — consistency is the key to real impact.',
                 date: 'Jan 28, 2026',
                 image: '/images/blog-our-story.jpg',
+                linkHref: '#',
               },
               {
-                title: '5 Ways to Reduce Household Waste',
-                excerpt: 'Small changes at home can have a big impact. Here are five practical tips to cut down on waste starting today.',
+                title: 'GreenCredits and the Circular Economy',
+                excerpt: 'The circular economy turns waste into a resource. By connecting households with certified return points, GreenCredits closes the loop on packaging — keeping materials in use and out of the environment.',
                 date: 'Jan 15, 2026',
                 image: '/images/blog-reduce-waste.jpg',
+                linkHref: '#',
               },
             ].map((post, i) => (
               <a
                 key={i}
-                href="#"
+                href={post.linkHref}
+                {...(post.linkHref.startsWith('http') ? { target: '_blank', rel: 'noopener noreferrer' } : {})}
                 className="group rounded-xl overflow-hidden bg-white dark:bg-gray-800 shadow-sm hover:shadow-md transition-shadow border border-gray-100 dark:border-gray-700"
               >
                 <img src={post.image} alt={post.title} className="h-48 w-full object-cover" />

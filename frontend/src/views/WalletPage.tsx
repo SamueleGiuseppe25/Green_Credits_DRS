@@ -26,7 +26,12 @@ export const WalletPage: React.FC = () => {
       <div className="space-y-4">
         <div>
           <h2 className="font-semibold">Balance</h2>
-          {balance.isLoading && <div className="text-sm opacity-70">Loading balance…</div>}
+          {balance.isLoading && (
+            <div className="animate-pulse mt-1 space-y-2">
+              <div className="h-9 w-28 bg-gray-200 dark:bg-gray-700 rounded" />
+              <div className="h-3 w-40 bg-gray-200 dark:bg-gray-700 rounded" />
+            </div>
+          )}
           {balance.isError && (
             <div className="text-sm text-red-600">Could not load balance. Please try again.</div>
           )}
@@ -41,12 +46,28 @@ export const WalletPage: React.FC = () => {
         </div>
         <div>
           <h2 className="font-semibold">Recent</h2>
-          {history.isLoading && <div className="text-sm opacity-70">Loading transactions…</div>}
+          {history.isLoading && (
+            <div className="animate-pulse mt-2 border rounded-md overflow-hidden">
+              {[...Array(5)].map((_, i) => (
+                <div key={i} className="border-t px-3 py-3 flex gap-4">
+                  <div className="h-4 w-24 bg-gray-200 dark:bg-gray-700 rounded" />
+                  <div className="h-4 w-20 bg-gray-200 dark:bg-gray-700 rounded" />
+                  <div className="h-4 w-12 bg-gray-200 dark:bg-gray-700 rounded ml-auto" />
+                </div>
+              ))}
+            </div>
+          )}
           {history.isError && (
             <div className="text-sm text-red-600">Could not load transactions. Please try again.</div>
           )}
-          {history.data && history.data.items.length === 0 && (
-            <div className="text-sm opacity-70">No transactions yet.</div>
+          {!history.isLoading && history.data && history.data.items.length === 0 && (
+            <div className="text-center py-12 border rounded-md">
+              <div className="text-4xl mb-3">💰</div>
+              <div className="font-medium text-gray-700 dark:text-gray-300 mb-1">No transactions yet</div>
+              <div className="text-sm text-gray-500 dark:text-gray-400">
+                Complete a collection to see credits appear here.
+              </div>
+            </div>
           )}
           {history.data && history.data.items.length > 0 && (
             <div className="mt-2 border rounded-md overflow-hidden">
@@ -69,10 +90,22 @@ export const WalletPage: React.FC = () => {
                     return (
                       <tr key={txn.id} className="border-t">
                         <td className="px-3 py-2">{formatDateTime(txn.ts)}</td>
-                        <td className="px-3 py-2">{txn.kind}</td>
+                        <td className="px-3 py-2">
+                          {txn.kind === 'donation' ? (
+                            <span className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 dark:bg-emerald-900 dark:text-emerald-300 font-medium">
+                              💚 Donated
+                            </span>
+                          ) : txn.kind === 'collection_credit' ? (
+                            <span className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300 font-medium">
+                              💳 Credit
+                            </span>
+                          ) : (
+                            <span className="text-xs text-gray-600 dark:text-gray-400">{txn.kind}</span>
+                          )}
+                        </td>
                         <td className="px-3 py-2 text-right">
-                          <span className={positive ? 'text-green-600' : 'text-red-600'}>
-                            {positive ? '+' : '-'}
+                          <span className={txn.kind === 'donation' ? 'text-emerald-600' : positive ? 'text-green-600' : 'text-red-600'}>
+                            {txn.kind === 'donation' ? '💚 ' : positive ? '+' : '-'}
                             €{formatEuro(Math.abs(txn.amountCents))}
                           </span>
                         </td>
@@ -85,28 +118,26 @@ export const WalletPage: React.FC = () => {
                               {txn.collectionStatus && (
                                 <CollectionStatusBadge status={txn.collectionStatus} />
                               )}
-                              {txn.proofUrl && (
-                                <a
-                                  href={
+                              {txn.proofUrl ? (
+                                <img
+                                  src={
                                     txn.proofUrl.startsWith('/')
                                       ? `${API_BASE_URL}${txn.proofUrl}`
                                       : txn.proofUrl
                                   }
-                                  target="_blank"
-                                  rel="noreferrer"
-                                  className="inline-block"
+                                  alt="Proof"
+                                  style={{ height: 48, borderRadius: 4, cursor: 'pointer' }}
+                                  className="object-cover"
+                                  onClick={() => {
+                                    const url = txn.proofUrl!.startsWith('/')
+                                      ? `${API_BASE_URL}${txn.proofUrl}`
+                                      : txn.proofUrl!
+                                    window.open(url, '_blank')
+                                  }}
                                   title="View proof"
-                                >
-                                  <img
-                                    src={
-                                      txn.proofUrl.startsWith('/')
-                                        ? `${API_BASE_URL}${txn.proofUrl}`
-                                        : txn.proofUrl
-                                    }
-                                    alt="Proof"
-                                    className="w-8 h-8 object-cover rounded border"
-                                  />
-                                </a>
+                                />
+                              ) : (
+                                <span className="text-xs opacity-50">—</span>
                               )}
                             </div>
                           ) : (

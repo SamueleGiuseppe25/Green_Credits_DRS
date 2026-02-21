@@ -8,6 +8,7 @@ export type AuthUser = {
   id: number
   email: string
   full_name?: string | null
+  address?: string | null
   is_active?: boolean | null
   is_admin?: boolean | null
   is_driver?: boolean | null

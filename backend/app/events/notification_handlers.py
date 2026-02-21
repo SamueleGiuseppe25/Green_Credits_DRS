@@ -82,10 +82,28 @@ async def _on_wallet_credit(payload: dict[str, Any]) -> None:
         logger.exception("Failed handling wallet.credit.created")
 
 
+async def _on_claim_resolved(payload: dict[str, Any]) -> None:
+    try:
+        response_text = payload.get("admin_response") or "No additional details provided."
+        await send_email(
+            to=payload["email"],
+            subject=f"Your claim #{payload['claim_id']} has been resolved",
+            html_body=(
+                f"<p>Your support claim <strong>#{payload['claim_id']}</strong> "
+                f"has been marked as resolved.</p>"
+                f"<p><strong>Admin response:</strong> {response_text}</p>"
+                f"<p>Thank you for using GreenCredits.</p>"
+            ),
+        )
+    except Exception:
+        logger.exception("Failed handling claim.resolved")
+
+
 def register_notification_handlers() -> None:
     register_handler("subscription.confirmed", _on_subscription_confirmed)
     register_handler("collection.scheduled", _on_collection_scheduled)
     register_handler("collection.collected", _on_collection_collected)
     register_handler("collection.completed", _on_collection_completed)
     register_handler("wallet.credit.created", _on_wallet_credit)
+    register_handler("claim.resolved", _on_claim_resolved)
     logger.info("All notification handlers registered")

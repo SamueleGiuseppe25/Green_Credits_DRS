@@ -30,6 +30,9 @@ async def create(
     return_point_id: int,
     bag_count: int | None,
     notes: str | None,
+    pickup_address: str | None = None,
+    voucher_preference: str | None = "wallet",
+    charity_id: str | None = None,
 ) -> Collection:
     _validate_scheduled_at(scheduled_at)
     # Block if user has an active recurring slot
@@ -73,6 +76,9 @@ async def create(
         return_point_id=return_point_id,
         bag_count=bag_count or 1,
         notes=notes,
+        pickup_address=pickup_address,
+        voucher_preference=voucher_preference or "wallet",
+        charity_id=charity_id,
         status="scheduled",
     )
     session.add(col)

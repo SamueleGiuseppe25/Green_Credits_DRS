@@ -1,5 +1,13 @@
 import React, { useEffect, useState } from 'react'
 import toast from 'react-hot-toast'
+
+const CHARITY_NAMES: Record<string, string> = {
+  friends_of_earth: 'Friends of the Earth Ireland',
+  irish_cancer_society: 'Irish Cancer Society',
+  barnardos: 'Barnardos Ireland',
+  an_taisce: 'An Taisce',
+  clean_coasts: 'Clean Coasts',
+}
 import { API_BASE_URL } from '../lib/api'
 import {
   fetchDriverProfile,
@@ -204,6 +212,10 @@ export const DriverPage: React.FC = () => {
     return `€${(cents / 100).toFixed(2)}`
   })()
 
+  const completingCollection = completingId !== null
+    ? collections.find((c) => c.id === completingId) ?? null
+    : null
+
   return (
     <section>
       <h1 className="text-2xl font-bold">Driver Dashboard</h1>
@@ -334,8 +346,10 @@ export const DriverPage: React.FC = () => {
                   <th className="p-2">ID</th>
                   <th className="p-2">Scheduled</th>
                   <th className="p-2">Return Point</th>
+                  <th className="p-2">Pickup Address</th>
                   <th className="p-2">Bags</th>
                   <th className="p-2">Status</th>
+                  <th className="p-2">Preference</th>
                   <th className="p-2">Proof</th>
                   <th className="p-2">Actions</th>
                 </tr>
@@ -346,9 +360,21 @@ export const DriverPage: React.FC = () => {
                     <td className="p-2">{c.id}</td>
                     <td className="p-2">{new Date(c.scheduledAt).toLocaleString()}</td>
                     <td className="p-2">#{c.returnPointId}</td>
+                    <td className="p-2 text-sm">{c.pickupAddress || <span className="opacity-50">—</span>}</td>
                     <td className="p-2">{c.bagCount}</td>
                     <td className="p-2">
                       <StatusBadge status={c.status} />
+                    </td>
+                    <td className="p-2">
+                      {c.voucherPreference === 'donate' ? (
+                        <span className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 dark:bg-emerald-900 dark:text-emerald-200">
+                          💚 {CHARITY_NAMES[c.charityId || ''] || 'Charity'}
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">
+                          💳 Wallet
+                        </span>
+                      )}
                     </td>
                     <td className="p-2">
                       {c.proofUrl ? (
@@ -414,6 +440,13 @@ export const DriverPage: React.FC = () => {
           <div className="fixed inset-0 flex items-center justify-center z-50 p-4">
             <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6 w-full max-w-md">
               <h3 className="font-semibold mb-3">Mark Collection #{completingId} as Completed</h3>
+              {completingCollection?.voucherPreference === 'donate' && (
+                <div className="mb-4 p-3 rounded-lg bg-emerald-50 dark:bg-emerald-900/30 border border-emerald-200 dark:border-emerald-700 text-sm text-emerald-800 dark:text-emerald-200">
+                  💚 <strong>Donation collection</strong> — The voucher value will be donated to{' '}
+                  <strong>{CHARITY_NAMES[completingCollection.charityId || ''] || 'the selected charity'}</strong>.
+                  Enter the voucher amount below and confirm.
+                </div>
+              )}
               <label className="block text-sm opacity-70 mb-1">Voucher Total (€) *</label>
               <input
                 type="number"
@@ -465,11 +498,11 @@ export const DriverPage: React.FC = () => {
                   disabled={markingPhase !== 'idle'}
                   className="text-sm px-4 py-1 rounded bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-50"
                 >
-                  {markingPhase === 'uploading'
-                    ? 'Uploading...'
-                    : markingPhase === 'submitting'
-                      ? 'Submitting...'
-                      : 'Confirm'}
+                  {markingPhase === 'idle'
+                    ? (completingCollection?.voucherPreference === 'donate' ? 'Confirm Donation' : 'Confirm')
+                    : markingPhase === 'uploading'
+                      ? 'Uploading...'
+                      : 'Submitting...'}
                 </button>
               </div>
             </div>

@@ -2,6 +2,14 @@ from pathlib import Path
 from typing import List
 
 from sqlalchemy import func, select
+
+CHARITY_NAMES: dict[str, str] = {
+    "friends_of_earth": "Friends of the Earth Ireland",
+    "irish_cancer_society": "Irish Cancer Society",
+    "barnardos": "Barnardos Ireland",
+    "an_taisce": "An Taisce",
+    "clean_coasts": "Clean Coasts",
+}
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..core.events import publish_event
@@ -11,7 +19,7 @@ from ..models.collection import Collection
 from ..models import WalletTransaction
 from ..core.security import get_password_hash
 from .driver_payouts import create_earning
-from .wallet import credit_wallet_for_collection
+from .wallet import credit_wallet_for_collection, get_balance
 
 
 async def create_driver(
@@ -139,35 +147,48 @@ async def mark_completed(
         col.proof_url = proof_url
     col.voucher_amount_cents = amt
 
-    # Auto-credit wallet (idempotency: check if credit already exists)
+    is_donation = col.voucher_preference == "donate"
+
+    # Idempotency: check if credit or donation already exists for this collection
     existing_credit = await session.scalar(
         select(func.count())
         .select_from(WalletTransaction)
         .where(
             WalletTransaction.user_id == col.user_id,
-            WalletTransaction.kind == "collection_credit",
+            WalletTransaction.kind.in_(["collection_credit", "donation"]),
             WalletTransaction.note.like(f"%collection #{col.id}%"),
         )
     )
     if int(existing_credit or 0) == 0 and amt > 0:
-        proof_ref = "-"
-        if proof_url:
-            proof_ref = Path(proof_url).name or "-"
-            if len(proof_ref) > 64:
-                proof_ref = proof_ref[:61] + "..."
-        note = (
-            f"Credit for collection #{col.id} "
-            f"(voucher €{amt / 100:.2f}) "
-            f"driver_id={col.driver_id or '-'} "
-            f"proof={proof_ref}"
-        )
-        await credit_wallet_for_collection(
-            session,
-            col.user_id,
-            col.id,
-            amt,
-            note=note,
-        )
+        if is_donation:
+            charity_name = CHARITY_NAMES.get(col.charity_id or "", col.charity_id or "a charity")
+            donation_note = f"Donated to {charity_name} — collection #{col.id} (€{amt / 100:.2f})"
+            txn = WalletTransaction(
+                user_id=col.user_id,
+                kind="donation",
+                amount_cents=amt,
+                note=donation_note,
+            )
+            session.add(txn)
+        else:
+            proof_ref = "-"
+            if proof_url:
+                proof_ref = Path(proof_url).name or "-"
+                if len(proof_ref) > 64:
+                    proof_ref = proof_ref[:61] + "..."
+            note = (
+                f"Credit for collection #{col.id} "
+                f"(voucher €{amt / 100:.2f}) "
+                f"driver_id={col.driver_id or '-'} "
+                f"proof={proof_ref}"
+            )
+            await credit_wallet_for_collection(
+                session,
+                col.user_id,
+                col.id,
+                amt,
+                note=note,
+            )
 
     await session.commit()
     await session.refresh(col)
@@ -180,16 +201,12 @@ async def mark_completed(
             "proof_url": col.proof_url or "",
             "voucher_amount_eur": (col.voucher_amount_cents or 0) / 100,
         })
-        if amt > 0:
-            balance = await session.scalar(
-                select(func.coalesce(func.sum(WalletTransaction.amount_cents), 0)).where(
-                    WalletTransaction.user_id == col.user_id
-                )
-            )
+        if amt > 0 and not is_donation:
+            balance_cents, _ = await get_balance(session, col.user_id)
             await publish_event("wallet.credit.created", {
                 "email": user.email,
                 "amount_eur": amt / 100,
-                "new_balance_eur": int(balance or 0) / 100,
+                "new_balance_eur": balance_cents / 100,
             })
     return col, None
 

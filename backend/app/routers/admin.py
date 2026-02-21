@@ -13,6 +13,7 @@ from ..models import (
     Subscription,
     User,
 )
+from ..models.claim import Claim
 from ..services.collections import admin_transition_status, assign_driver as svc_assign_driver
 from ..services.drivers import create_driver as svc_create_driver, list_drivers as svc_list_drivers
 from ..services.driver_payouts import (
@@ -24,15 +25,30 @@ from ..services.driver_payouts import (
 from ..services.db import get_db_session
 from ..schemas import (
     AssignDriverRequest,
-    DriverProfileCreate,
-    DriverProfileOut,
+    ClaimOut,
+    ClaimStatusUpdate,
+    ClaimsListResponse,
     CreatePayoutRequest,
     DriverEarningsBalanceOut,
     DriverEarningOut,
+    DriverProfileCreate,
+    DriverProfileOut,
     DriverPayoutOut,
     GenerateCollectionsResponse,
+    NotificationCreate,
+    NotificationOut,
+    NotificationsListResponse,
 )
+from ..core.events import publish_event
 from ..services.recurring_generation import generate_collections as svc_generate_collections
+from ..services.claims import (
+    get_all_claims as svc_get_all_claims,
+    update_claim_status as svc_update_claim_status,
+)
+from ..services.notifications import (
+    create_notification as svc_create_notification,
+    get_all_notifications as svc_get_all_notifications,
+)
 
 router = APIRouter(prefix="/admin", tags=["admin"], dependencies=[Depends(require_admin)])
 
@@ -328,3 +344,113 @@ async def list_payouts(session: AsyncSession = Depends(get_db_session)):
         )
         for p in rows
     ]
+
+
+@router.get("/claims", response_model=ClaimsListResponse)
+async def admin_list_claims(
+    status: str | None = Query(default=None),
+    page: int = Query(default=1, ge=1),
+    page_size: int = Query(default=20, ge=1, le=100),
+    session: AsyncSession = Depends(get_db_session),
+):
+    claims, total = await svc_get_all_claims(
+        session, status=status, page=page, page_size=page_size
+    )
+    return {
+        "items": [
+            {
+                "id": c.id,
+                "userId": c.user_id,
+                "description": c.description,
+                "imageUrl": c.image_url,
+                "status": c.status,
+                "adminResponse": c.admin_response,
+                "createdAt": c.created_at,
+                "updatedAt": c.updated_at,
+            }
+            for c in claims
+        ],
+        "total": total,
+    }
+
+
+@router.patch("/claims/{claim_id}/status", response_model=ClaimOut)
+async def admin_update_claim_status(
+    claim_id: int,
+    payload: ClaimStatusUpdate,
+    session: AsyncSession = Depends(get_db_session),
+):
+    valid = {"open", "in_review", "resolved"}
+    if payload.status not in valid:
+        raise HTTPException(
+            status_code=422, detail=f"status must be one of {sorted(valid)}"
+        )
+    claim = await svc_update_claim_status(
+        session, claim_id, payload.status, payload.adminResponse
+    )
+    if claim is None:
+        raise HTTPException(status_code=404, detail="Claim not found")
+    if payload.status == "resolved":
+        user = await session.get(User, claim.user_id)
+        if user:
+            await publish_event(
+                "claim.resolved",
+                {
+                    "email": user.email,
+                    "claim_id": claim.id,
+                    "admin_response": claim.admin_response,
+                },
+            )
+    return {
+        "id": claim.id,
+        "userId": claim.user_id,
+        "description": claim.description,
+        "imageUrl": claim.image_url,
+        "status": claim.status,
+        "adminResponse": claim.admin_response,
+        "createdAt": claim.created_at,
+        "updatedAt": claim.updated_at,
+    }
+
+
+@router.post("/notifications", response_model=NotificationOut, status_code=201)
+async def admin_send_notification(
+    payload: NotificationCreate,
+    session: AsyncSession = Depends(get_db_session),
+):
+    n = await svc_create_notification(
+        session, payload.userId, payload.title, payload.body
+    )
+    return {
+        "id": n.id,
+        "userId": n.user_id,
+        "title": n.title,
+        "body": n.body,
+        "isRead": n.is_read,
+        "createdAt": n.created_at,
+    }
+
+
+@router.get("/notifications", response_model=NotificationsListResponse)
+async def admin_list_notifications(
+    page: int = Query(default=1, ge=1),
+    page_size: int = Query(default=50, ge=1, le=200),
+    session: AsyncSession = Depends(get_db_session),
+):
+    items, total = await svc_get_all_notifications(
+        session, page=page, page_size=page_size
+    )
+    return {
+        "items": [
+            {
+                "id": n.id,
+                "userId": n.user_id,
+                "title": n.title,
+                "body": n.body,
+                "isRead": n.is_read,
+                "createdAt": n.created_at,
+            }
+            for n in items
+        ],
+        "total": total,
+    }
