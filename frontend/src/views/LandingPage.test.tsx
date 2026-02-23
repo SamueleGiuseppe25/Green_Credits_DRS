@@ -1,6 +1,7 @@
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router-dom'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { http, HttpResponse } from 'msw'
 import { server } from '../test/server'
 import { AuthProvider } from '../context/AuthContext'
@@ -25,12 +26,17 @@ beforeEach(() => {
 })
 
 function renderLanding() {
+  const queryClient = new QueryClient({
+    defaultOptions: { queries: { retry: false } },
+  })
   return render(
-    <MemoryRouter initialEntries={['/']}>
-      <AuthProvider>
-        <LandingPage />
-      </AuthProvider>
-    </MemoryRouter>
+    <QueryClientProvider client={queryClient}>
+      <MemoryRouter initialEntries={['/']}>
+        <AuthProvider>
+          <LandingPage />
+        </AuthProvider>
+      </MemoryRouter>
+    </QueryClientProvider>
   )
 }
 
@@ -44,7 +50,7 @@ describe('LandingPage', () => {
 
   it('renders Get Started CTA linking to signup', async () => {
     renderLanding()
-    const cta = await screen.findByRole('link', { name: /get started free/i })
+    const cta = await screen.findByRole('link', { name: /start collecting/i })
     expect(cta).toBeInTheDocument()
     expect(cta).toHaveAttribute('href', '/signup')
   })
@@ -61,8 +67,8 @@ describe('LandingPage', () => {
     expect(
       await screen.findByRole('heading', { name: /simple, transparent pricing/i })
     ).toBeInTheDocument()
-    // Each plan has a "Get Started" link
-    const planButtons = await screen.findAllByRole('link', { name: /^get started$/i })
+    // Each plan has a "Choose Plan" link
+    const planButtons = await screen.findAllByRole('link', { name: /^choose plan$/i })
     expect(planButtons).toHaveLength(3)
   })
 
