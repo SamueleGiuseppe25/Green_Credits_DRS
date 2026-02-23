@@ -229,6 +229,7 @@ async def create_driver(
             vehicle_type=payload.vehicleType,
             vehicle_plate=payload.vehiclePlate,
             phone=payload.phone,
+            zone=payload.zone,
         )
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc))
@@ -239,6 +240,7 @@ async def create_driver(
         vehiclePlate=driver.vehicle_plate,
         phone=driver.phone,
         isAvailable=driver.is_available,
+        zone=driver.zone,
     )
 
 
@@ -253,6 +255,7 @@ async def list_drivers(session: AsyncSession = Depends(get_db_session)):
             "vehiclePlate": d.vehicle_plate,
             "phone": d.phone,
             "isAvailable": d.is_available,
+            "zone": d.zone,
         }
         for d in drivers
     ]

@@ -30,6 +30,7 @@ async def create_driver(
     vehicle_type: str | None,
     vehicle_plate: str | None,
     phone: str | None,
+    zone: str | None = None,
 ) -> Driver:
     email = (email or "").strip().lower()
     if "@" not in email or len(password or "") < 6:
@@ -53,6 +54,7 @@ async def create_driver(
         vehicle_type=vehicle_type,
         vehicle_plate=vehicle_plate,
         phone=phone,
+        zone=zone,
     )
     session.add(driver)
     await session.commit()
@@ -228,6 +230,7 @@ async def update_profile(
     vehicle_plate: str | None = None,
     phone: str | None = None,
     is_available: bool | None = None,
+    zone: str | None = None,
 ) -> Driver | None:
     driver = await get_driver_by_user_id(session, user_id)
     if driver is None:
@@ -240,6 +243,8 @@ async def update_profile(
         driver.phone = phone
     if is_available is not None:
         driver.is_available = is_available
+    if zone is not None:
+        driver.zone = zone
     await session.commit()
     await session.refresh(driver)
     return driver

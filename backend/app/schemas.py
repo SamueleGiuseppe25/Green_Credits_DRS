@@ -118,6 +118,7 @@ class DriverProfileOut(BaseModel):
     vehiclePlate: Optional[str] = None
     phone: Optional[str] = None
     isAvailable: bool = True
+    zone: Optional[str] = None
 
 
 class DriverProfileCreate(BaseModel):
@@ -127,6 +128,7 @@ class DriverProfileCreate(BaseModel):
     vehicleType: Optional[str] = None
     vehiclePlate: Optional[str] = None
     phone: Optional[str] = None
+    zone: Optional[str] = None
 
 
 class DriverProfileUpdate(BaseModel):
@@ -134,6 +136,7 @@ class DriverProfileUpdate(BaseModel):
     vehiclePlate: Optional[str] = None
     phone: Optional[str] = None
     isAvailable: Optional[bool] = None
+    zone: Optional[str] = None
 
 
 class AssignDriverRequest(BaseModel):

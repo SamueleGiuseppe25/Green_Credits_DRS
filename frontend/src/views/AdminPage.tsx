@@ -25,6 +25,8 @@ import {
 import type { DriverEarningsBalance, DriverPayout } from '../types/api'
 import { MetricCard } from '../components/MetricCard'
 
+const DRIVER_ZONES = ['Dublin 1', 'Dublin 2-4', 'Dublin 6-8', 'South County', 'North County']
+
 type Tab = 'collections' | 'drivers' | 'payouts' | 'claims' | 'notifications'
 type StatusFilter = 'all' | 'scheduled' | 'assigned' | 'collected' | 'completed' | 'cancelled'
 
@@ -53,7 +55,7 @@ export const AdminPage: React.FC = () => {
   // Create driver form
   const [showCreateForm, setShowCreateForm] = useState(false)
   const [createForm, setCreateForm] = useState({
-    email: '', password: '', fullName: '', vehicleType: '', vehiclePlate: '', phone: '',
+    email: '', password: '', fullName: '', vehicleType: '', vehiclePlate: '', phone: '', zone: '',
   })
   const [createLoading, setCreateLoading] = useState(false)
 
@@ -307,9 +309,10 @@ export const AdminPage: React.FC = () => {
         vehicleType: createForm.vehicleType || undefined,
         vehiclePlate: createForm.vehiclePlate || undefined,
         phone: createForm.phone || undefined,
+        zone: createForm.zone || undefined,
       })
       toast.success('Driver created')
-      setCreateForm({ email: '', password: '', fullName: '', vehicleType: '', vehiclePlate: '', phone: '' })
+      setCreateForm({ email: '', password: '', fullName: '', vehicleType: '', vehiclePlate: '', phone: '', zone: '' })
       setShowCreateForm(false)
       refreshDrivers()
     } catch (e: any) {
@@ -505,7 +508,7 @@ export const AdminPage: React.FC = () => {
                                     <option value="">Select…</option>
                                     {drivers.map((d) => (
                                       <option key={d.id} value={d.id}>
-                                        #{d.id} {d.vehiclePlate || d.phone || `Driver ${d.id}`}
+                                        #{d.id} {d.vehiclePlate || d.phone || `Driver ${d.id}`}{d.zone ? ` [${d.zone}]` : ''}
                                       </option>
                                     ))}
                                   </select>
@@ -628,6 +631,19 @@ export const AdminPage: React.FC = () => {
                   placeholder="555-0100"
                 />
               </div>
+              <div>
+                <label className="block text-xs opacity-70 mb-1">Zone</label>
+                <select
+                  className="w-full border rounded px-2 py-1 bg-transparent dark:bg-gray-900"
+                  value={createForm.zone}
+                  onChange={(e) => setCreateForm((f) => ({ ...f, zone: e.target.value }))}
+                >
+                  <option value="">— unassigned —</option>
+                  {DRIVER_ZONES.map((z) => (
+                    <option key={z} value={z}>{z}</option>
+                  ))}
+                </select>
+              </div>
               <div className="sm:col-span-2 lg:col-span-3">
                 <button
                   type="submit"
@@ -656,6 +672,7 @@ export const AdminPage: React.FC = () => {
                       <th className="p-2">Vehicle Type</th>
                       <th className="p-2">Vehicle Plate</th>
                       <th className="p-2">Phone</th>
+                      <th className="p-2">Zone</th>
                       <th className="p-2">Available</th>
                     </tr>
                   </thead>
@@ -667,6 +684,15 @@ export const AdminPage: React.FC = () => {
                         <td className="p-2">{d.vehicleType || '—'}</td>
                         <td className="p-2">{d.vehiclePlate || '—'}</td>
                         <td className="p-2">{d.phone || '—'}</td>
+                        <td className="p-2">
+                          {d.zone ? (
+                            <span className="inline-block text-xs px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-800 dark:bg-indigo-900 dark:text-indigo-200">
+                              {d.zone}
+                            </span>
+                          ) : (
+                            <span className="text-xs opacity-40">—</span>
+                          )}
+                        </td>
                         <td className="p-2">
                           <span
                             className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs ${

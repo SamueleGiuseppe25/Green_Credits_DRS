@@ -187,7 +187,7 @@ export const SettingsPage: React.FC = () => {
         <div className="border rounded-md p-4">
           <div className="font-semibold mb-2">Delete account</div>
           <div className="text-sm opacity-80 mb-2">
-            Deleting your account requires no active subscription and no upcoming collections.
+            Any active subscription will be cancelled automatically. You must cancel upcoming collections first.
           </div>
           <button
             className="text-sm px-3 py-1 rounded border border-red-600 text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20 disabled:opacity-50"
@@ -244,7 +244,7 @@ export const SettingsPage: React.FC = () => {
             <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6 w-full max-w-md">
               <h3 className="font-semibold mb-3">Delete Account?</h3>
               <p className="text-sm text-gray-600 dark:text-gray-400 mb-6">
-                This action is permanent and cannot be undone. All your data will be deleted.
+                This action is permanent and cannot be undone. Your subscription will be cancelled and all your data will be deleted.
               </p>
               <div className="flex gap-2 justify-end">
                 <button

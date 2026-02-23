@@ -36,6 +36,7 @@ export type AdminDriver = {
   vehiclePlate: string | null
   phone: string | null
   isAvailable: boolean
+  zone: string | null
 }
 
 async function handleAdminResponse<T>(res: Response): Promise<T> {
@@ -96,6 +97,7 @@ export function createAdminDriver(data: {
   vehicleType?: string
   vehiclePlate?: string
   phone?: string
+  zone?: string
 }): Promise<AdminDriver> {
   return adminFetch<AdminDriver>('/admin/drivers', {
     method: 'POST',

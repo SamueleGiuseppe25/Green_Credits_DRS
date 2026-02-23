@@ -114,6 +114,7 @@ export interface DriverProfile {
   vehiclePlate: string | null
   phone: string | null
   isAvailable: boolean
+  zone: string | null
 }
 
 export interface DriverCollection {

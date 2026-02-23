@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react'
 import toast from 'react-hot-toast'
 
+const DRIVER_ZONES = ['Dublin 1', 'Dublin 2-4', 'Dublin 6-8', 'South County', 'North County']
+
 const CHARITY_NAMES: Record<string, string> = {
   friends_of_earth: 'Friends of the Earth Ireland',
   irish_cancer_society: 'Irish Cancer Society',
@@ -35,7 +37,7 @@ export const DriverPage: React.FC = () => {
 
   // Profile edit state
   const [editing, setEditing] = useState(false)
-  const [editForm, setEditForm] = useState({ vehicleType: '', vehiclePlate: '', phone: '' })
+  const [editForm, setEditForm] = useState({ vehicleType: '', vehiclePlate: '', phone: '', zone: '' })
 
   // Availability toggle
   const [toggleLoading, setToggleLoading] = useState(false)
@@ -76,6 +78,7 @@ export const DriverPage: React.FC = () => {
           vehicleType: p.vehicleType || '',
           vehiclePlate: p.vehiclePlate || '',
           phone: p.phone || '',
+          zone: p.zone || '',
         })
       })
       .catch((e: any) => {
@@ -146,6 +149,7 @@ export const DriverPage: React.FC = () => {
         vehicleType: editForm.vehicleType || null,
         vehiclePlate: editForm.vehiclePlate || null,
         phone: editForm.phone || null,
+        zone: editForm.zone || null,
       })
       setProfile(updated)
       setEditing(false)
@@ -291,6 +295,19 @@ export const DriverPage: React.FC = () => {
                 placeholder="e.g. 555-0100"
               />
             </div>
+            <div>
+              <label className="block text-xs opacity-70 mb-1">Zone</label>
+              <select
+                className="w-full border rounded px-2 py-1 bg-transparent dark:bg-gray-900"
+                value={editForm.zone}
+                onChange={(e) => setEditForm((f) => ({ ...f, zone: e.target.value }))}
+              >
+                <option value="">— unassigned —</option>
+                {DRIVER_ZONES.map((z) => (
+                  <option key={z} value={z}>{z}</option>
+                ))}
+              </select>
+            </div>
             <div className="sm:col-span-3 flex gap-2 mt-1">
               <button
                 onClick={handleSaveProfile}
@@ -311,6 +328,16 @@ export const DriverPage: React.FC = () => {
             <ProfileField label="Vehicle Type" value={profile?.vehicleType} />
             <ProfileField label="Vehicle Plate" value={profile?.vehiclePlate} />
             <ProfileField label="Phone" value={profile?.phone} />
+            <div>
+              <div className="text-xs opacity-70 mb-0.5">Zone</div>
+              {profile?.zone ? (
+                <span className="inline-block text-xs px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-800 dark:bg-indigo-900 dark:text-indigo-200">
+                  {profile.zone}
+                </span>
+              ) : (
+                <span className="text-sm opacity-50">—</span>
+              )}
+            </div>
           </div>
         )}
       </div>

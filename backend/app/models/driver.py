@@ -16,6 +16,7 @@ class Driver(Base):
     vehicle_plate: Mapped[str | None] = mapped_column(String(20), nullable=True)
     phone: Mapped[str | None] = mapped_column(String(20), nullable=True)
     is_available: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True, server_default="1")
+    zone: Mapped[str | None] = mapped_column(String(32), nullable=True)
 
     created_at: Mapped[datetime] = mapped_column(
         DateTime,

@@ -46,6 +46,7 @@ export function updateDriverProfile(data: {
   vehiclePlate?: string | null
   phone?: string | null
   isAvailable?: boolean | null
+  zone?: string | null
 }): Promise<DriverProfile> {
   return driverFetch<DriverProfile>('/drivers/me/profile', {
     method: 'PATCH',

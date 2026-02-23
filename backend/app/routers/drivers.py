@@ -42,6 +42,7 @@ async def get_my_profile(
         vehiclePlate=driver.vehicle_plate,
         phone=driver.phone,
         isAvailable=driver.is_available,
+        zone=driver.zone,
     )
 
 
@@ -58,6 +59,7 @@ async def update_my_profile(
         vehicle_plate=payload.vehiclePlate,
         phone=payload.phone,
         is_available=payload.isAvailable,
+        zone=payload.zone,
     )
     if driver is None:
         raise HTTPException(status_code=404, detail="Driver profile not found")
@@ -68,6 +70,7 @@ async def update_my_profile(
         vehiclePlate=driver.vehicle_plate,
         phone=driver.phone,
         isAvailable=driver.is_available,
+        zone=driver.zone,
     )
 
 
