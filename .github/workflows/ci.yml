@@ -52,11 +52,21 @@ jobs:
       - name: Lint
         run: npm run lint
 
-      - name: Install Vitest JUnit reporter
-        run: npm i -D vitest-junit
+      - name: Create Vitest CI config (JUnit output)
+        run: |
+          cat > vitest.ci.config.ts <<'EOF'
+          import { defineConfig } from 'vitest/config'
+
+          export default defineConfig({
+            test: {
+              reporters: ['default', 'junit'],
+              outputFile: { junit: '../frontend-junit.xml' },
+            },
+          })
+          EOF
 
       - name: Run frontend tests (JUnit XML)
-        run: npx vitest run --reporter=default --reporter=vitest-junit --outputFile=../frontend-junit.xml
+        run: npx vitest run --config vitest.ci.config.ts
 
       - name: Build
         run: npm run build
