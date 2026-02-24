@@ -52,23 +52,21 @@ jobs:
       - name: Lint
         run: npm run lint
 
-      - name: Install Vitest Sonar reporter
-        run: npm i -D vitest-sonar-reporter
+      - name: Install Vitest JUnit reporter
+        run: npm i -D vitest-junit
 
-      - name: Run frontend tests (Sonar XML report)
-        env:
-          SONAR_TEST_REPORT_PATH: ../frontend-test-report.xml
-        run: npx vitest run --reporter=default --reporter=vitest-sonar-reporter
+      - name: Run frontend tests (JUnit XML)
+        run: npx vitest run --reporter=default --reporter=vitest-junit --outputFile=../frontend-junit.xml
 
       - name: Build
         run: npm run build
 
-      - name: Upload frontend test report
+      - name: Upload frontend JUnit report
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: frontend-test-report
-          path: frontend-test-report.xml
+          name: frontend-junit
+          path: frontend-junit.xml
 
   sonarcloud:
     name: SonarCloud Scan
