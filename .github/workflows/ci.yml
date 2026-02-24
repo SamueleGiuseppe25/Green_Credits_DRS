@@ -52,13 +52,13 @@ jobs:
       - name: Lint
         run: npm run lint
 
-      - name: Ensure jest-junit reporter is available
-        run: npm i -D jest-junit
+      - name: Install Vitest JUnit reporter
+        run: npm i -D vitest-junit-reporter
 
       - name: Run frontend tests (JUnit XML)
         env:
-          JEST_JUNIT_OUTPUT: ../frontend-junit.xml
-        run: npm test -- --ci --reporters=default --reporters=jest-junit
+          VITEST_JUNIT_REPORTER_OUTPUT_FILE: ../frontend-junit.xml
+        run: npx vitest run --reporter=default --reporter=vitest-junit-reporter
 
       - name: Build
         run: npm run build
