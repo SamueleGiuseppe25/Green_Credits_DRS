@@ -19,6 +19,12 @@ const CHARITIES = [
   { id: 'clean_coasts', name: 'Clean Coasts' },
 ]
 
+function CollectionTypeBadge({ type }: { type?: string | null }) {
+  if (!type || type === 'bottles') return <span className="text-xs px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300">🍼 Bottles</span>
+  if (type === 'glass') return <span className="text-xs px-2 py-0.5 rounded-full bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300">🪟 Glass</span>
+  return <span className="text-xs px-2 py-0.5 rounded-full bg-teal-100 text-teal-700 dark:bg-teal-900/40 dark:text-teal-300">♻️ Both</span>
+}
+
 function timeToMinutes(value: string): number | null {
   if (!value) return null
   const [h, m] = value.split(':').map((n) => Number(n))
@@ -84,6 +90,7 @@ export const CollectionsPage: React.FC = () => {
   const [notes, setNotes] = useState<string>('')
   const [voucherPreference, setVoucherPreference] = useState<'wallet' | 'donate'>('wallet')
   const [charityId, setCharityId] = useState<string>(CHARITIES[0].id)
+  const [collectionType, setCollectionType] = useState<'bottles' | 'glass' | 'both'>('bottles')
   const minDate = formatTodayInputValue()
 
   useEffect(() => {
@@ -143,6 +150,7 @@ export const CollectionsPage: React.FC = () => {
       notes: notes || null,
       voucherPreference,
       charityId: voucherPreference === 'donate' ? charityId : undefined,
+      collectionType,
     })
     // reset
     setDate('')
@@ -152,6 +160,7 @@ export const CollectionsPage: React.FC = () => {
     setNotes('')
     setVoucherPreference('wallet')
     setCharityId(CHARITIES[0].id)
+    setCollectionType('bottles')
   }
 
   return (
@@ -195,6 +204,7 @@ export const CollectionsPage: React.FC = () => {
                           {new Date(c.scheduledAt).toLocaleString()}
                         </div>
                         <div className="flex items-center gap-2">
+                          <CollectionTypeBadge type={c.collectionType} />
                           <span className="text-xs px-2 py-0.5 rounded bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300">
                             {c.status}
                           </span>
@@ -298,6 +308,23 @@ export const CollectionsPage: React.FC = () => {
               <input type="number" min={1} className="border rounded px-2 py-1 bg-transparent dark:bg-gray-900 dark:text-gray-100"
                 value={bagCount} onChange={(e) => setBagCount(Number(e.target.value))}
               />
+              <label className="text-sm opacity-70">Material Type</label>
+              <div className="grid grid-cols-3 gap-1.5">
+                {(['bottles', 'glass', 'both'] as const).map((t) => (
+                  <button
+                    key={t}
+                    type="button"
+                    onClick={() => setCollectionType(t)}
+                    className={`py-2 px-1 rounded-lg border text-xs sm:text-sm font-medium transition-colors text-center ${
+                      collectionType === t
+                        ? 'bg-green-600 text-white border-green-600'
+                        : 'bg-white text-gray-700 border-gray-300 hover:border-green-400 dark:bg-gray-800 dark:text-gray-200 dark:border-gray-600'
+                    }`}
+                  >
+                    {t === 'bottles' ? '🍼 Bottles' : t === 'glass' ? '🪟 Glass' : '♻️ Both'}
+                  </button>
+                ))}
+              </div>
               <label className="text-sm opacity-70">Notes</label>
               <textarea className="border rounded px-2 py-1 bg-transparent dark:bg-gray-900 dark:text-gray-100" value={notes} onChange={(e) => setNotes(e.target.value)} />
             </div>

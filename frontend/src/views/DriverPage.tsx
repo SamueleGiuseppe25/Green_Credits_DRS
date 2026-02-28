@@ -375,6 +375,7 @@ export const DriverPage: React.FC = () => {
                   <th className="p-2">Return Point</th>
                   <th className="p-2">Pickup Address</th>
                   <th className="p-2">Bags</th>
+                  <th className="p-2">Material</th>
                   <th className="p-2">Status</th>
                   <th className="p-2">Preference</th>
                   <th className="p-2">Proof</th>
@@ -389,6 +390,9 @@ export const DriverPage: React.FC = () => {
                     <td className="p-2">#{c.returnPointId}</td>
                     <td className="p-2 text-sm">{c.pickupAddress || <span className="opacity-50">—</span>}</td>
                     <td className="p-2">{c.bagCount}</td>
+                    <td className="p-2">
+                      <CollectionTypeBadge type={c.collectionType} />
+                    </td>
                     <td className="p-2">
                       <StatusBadge status={c.status} />
                     </td>
@@ -610,6 +614,12 @@ export const DriverPage: React.FC = () => {
       </div>
     </section>
   )
+}
+
+function CollectionTypeBadge({ type }: { type?: string | null }) {
+  if (!type || type === 'bottles') return <span className="text-xs px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300">🍼 Bottles</span>
+  if (type === 'glass') return <span className="text-xs px-2 py-0.5 rounded-full bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300">🪟 Glass</span>
+  return <span className="text-xs px-2 py-0.5 rounded-full bg-teal-100 text-teal-700 dark:bg-teal-900/40 dark:text-teal-300">♻️ Both</span>
 }
 
 const ProfileField: React.FC<{ label: string; value?: string | null }> = ({ label, value }) => (

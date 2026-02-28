@@ -27,6 +27,7 @@ export type AdminCollection = {
   driver_id: number | null
   proof_url: string | null
   collection_slot_id: number | null
+  collection_type: string | null
 }
 
 export type AdminDriver = {

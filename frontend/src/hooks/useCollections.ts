@@ -26,6 +26,7 @@ export interface CreateCollectionPayload {
   notes?: string | null
   voucherPreference?: 'wallet' | 'donate'
   charityId?: string
+  collectionType?: 'bottles' | 'glass' | 'both'
 }
 
 export function useCreateCollection() {

@@ -22,6 +22,7 @@ class CreateCollectionRequest(BaseModel):
     notes: Optional[str] = None
     voucherPreference: Optional[str] = "wallet"  # "wallet" | "donate"
     charityId: Optional[str] = None
+    collectionType: Optional[str] = "bottles"  # "bottles" | "glass" | "both"
 
 
 router = APIRouter()
@@ -45,6 +46,7 @@ async def create_collection(
             pickup_address=current_user.address,
             voucher_preference=payload.voucherPreference or "wallet",
             charity_id=payload.charityId,
+            collection_type=payload.collectionType,
         )
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
@@ -70,6 +72,7 @@ async def create_collection(
         "voucherAmountCents": created.voucher_amount_cents,
         "voucherPreference": created.voucher_preference,
         "charityId": created.charity_id,
+        "collectionType": created.collection_type,
         "createdAt": created.created_at,
         "updatedAt": created.updated_at,
     }
@@ -97,6 +100,7 @@ async def list_my_collections(
             "voucherAmountCents": r.voucher_amount_cents,
             "voucherPreference": r.voucher_preference,
             "charityId": r.charity_id,
+            "collectionType": r.collection_type,
             "createdAt": r.created_at,
             "updatedAt": r.updated_at,
         }
@@ -126,6 +130,7 @@ async def cancel_collection(
         "voucherAmountCents": col.voucher_amount_cents,
         "voucherPreference": col.voucher_preference,
         "charityId": col.charity_id,
+        "collectionType": col.collection_type,
         "createdAt": col.created_at,
         "updatedAt": col.updated_at,
     }

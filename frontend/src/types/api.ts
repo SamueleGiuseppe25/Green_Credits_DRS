@@ -96,6 +96,7 @@ export interface Collection {
   voucherAmountCents?: number | null
   voucherPreference?: 'wallet' | 'donate' | null
   charityId?: string | null
+  collectionType?: 'bottles' | 'glass' | 'both' | null
   createdAt: string
   updatedAt: string
 }
@@ -131,6 +132,7 @@ export interface DriverCollection {
   voucherAmountCents?: number | null
   voucherPreference?: 'wallet' | 'donate' | null
   charityId?: string | null
+  collectionType?: 'bottles' | 'glass' | 'both' | null
   createdAt: string
   updatedAt: string
 }

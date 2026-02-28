@@ -96,6 +96,7 @@ async def get_my_collections(
             "voucherAmountCents": c.voucher_amount_cents,
             "voucherPreference": c.voucher_preference,
             "charityId": c.charity_id,
+            "collectionType": c.collection_type,
             "createdAt": c.created_at,
             "updatedAt": c.updated_at,
         }
@@ -130,6 +131,7 @@ async def mark_collection_collected(
         "voucherAmountCents": col.voucher_amount_cents,
         "voucherPreference": col.voucher_preference,
         "charityId": col.charity_id,
+        "collectionType": col.collection_type,
         "createdAt": col.created_at,
         "updatedAt": col.updated_at,
     }
@@ -169,6 +171,7 @@ async def mark_collection_completed(
         "voucherAmountCents": col.voucher_amount_cents,
         "voucherPreference": col.voucher_preference,
         "charityId": col.charity_id,
+        "collectionType": col.collection_type,
         "createdAt": col.created_at,
         "updatedAt": col.updated_at,
     }

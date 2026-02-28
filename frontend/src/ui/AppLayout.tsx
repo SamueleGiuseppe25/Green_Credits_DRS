@@ -121,11 +121,11 @@ export const AppLayout: React.FC = () => {
       {mobileOpen && (
         <>
           <div
-            className="fixed inset-0 bg-black/40 z-40"
+            className="fixed inset-0 bg-black/40 z-[900]"
             onClick={() => setMobileOpen(false)}
             aria-hidden="true"
           />
-          <div className="fixed inset-y-0 left-0 w-72 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 z-50 p-4">
+          <div className="fixed inset-y-0 left-0 w-72 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 z-[910] p-4">
             <div className="flex items-center justify-between mb-4">
               <Link to="/" className="text-lg font-semibold" onClick={() => setMobileOpen(false)}>GreenCredits</Link>
               <button

@@ -26,6 +26,7 @@ class Collection(Base):
     voucher_amount_cents: Mapped[int | None] = mapped_column(Integer, nullable=True)
     voucher_preference: Mapped[str | None] = mapped_column(String(8), nullable=True)  # "wallet" | "donate"
     charity_id: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    collection_type: Mapped[str | None] = mapped_column(String(8), nullable=True, default="bottles")  # "bottles" | "glass" | "both"
 
     is_archived: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False, server_default="0")
 

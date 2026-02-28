@@ -462,6 +462,7 @@ export const AdminPage: React.FC = () => {
                     <tr className="bg-gray-100 dark:bg-gray-800">
                       <th className="p-2">ID</th>
                       <th className="p-2">Type</th>
+                      <th className="p-2">Material</th>
                       <th className="p-2">User</th>
                       <th className="p-2">Return Pt</th>
                       <th className="p-2">Scheduled</th>
@@ -479,6 +480,9 @@ export const AdminPage: React.FC = () => {
                           <span className={`inline-block text-xs px-2 py-0.5 rounded-full ${c.collection_slot_id != null ? 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200' : 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200'}`}>
                             {c.collection_slot_id != null ? 'Recurring' : 'One-off'}
                           </span>
+                        </td>
+                        <td className="p-2">
+                          <CollectionTypeBadge type={c.collection_type} />
                         </td>
                         <td className="p-2">#{c.user_id}</td>
                         <td className="p-2">#{c.return_point_id}</td>
@@ -1064,6 +1068,12 @@ const TabButton: React.FC<{ active: boolean; onClick: () => void; children: Reac
     {children}
   </button>
 )
+
+function CollectionTypeBadge({ type }: { type?: string | null }) {
+  if (!type || type === 'bottles') return <span className="text-xs px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300">🍼 Bottles</span>
+  if (type === 'glass') return <span className="text-xs px-2 py-0.5 rounded-full bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300">🪟 Glass</span>
+  return <span className="text-xs px-2 py-0.5 rounded-full bg-teal-100 text-teal-700 dark:bg-teal-900/40 dark:text-teal-300">♻️ Both</span>
+}
 
 const StatusBadge: React.FC<{ status: string }> = ({ status }) => {
   const colors: Record<string, string> = {

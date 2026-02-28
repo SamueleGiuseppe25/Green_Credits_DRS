@@ -76,6 +76,9 @@ class Collection(BaseModel):
     proofUrl: Optional[str] = None
     voucherAmountCents: Optional[int] = None
     collectionSlotId: Optional[int] = None
+    voucherPreference: Optional[str] = None  # "wallet" | "donate"
+    charityId: Optional[str] = None
+    collectionType: Optional[str] = "bottles"  # "bottles" | "glass" | "both"
     createdAt: datetime
     updatedAt: datetime
 

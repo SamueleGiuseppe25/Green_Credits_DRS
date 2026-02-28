@@ -180,6 +180,7 @@ async def list_collections(
             "proof_url": c.proof_url,
             "voucher_amount_cents": c.voucher_amount_cents,
             "collection_slot_id": c.collection_slot_id,
+            "collection_type": c.collection_type,
         }
         for c in rows
     ]
@@ -210,6 +211,7 @@ async def update_collection_status(
         "driverId": col.driver_id,
         "proofUrl": col.proof_url,
         "voucherAmountCents": col.voucher_amount_cents,
+        "collectionType": col.collection_type,
         "createdAt": col.created_at,
         "updatedAt": col.updated_at,
     }
@@ -283,6 +285,7 @@ async def assign_driver_to_collection(
         "driverId": col.driver_id,
         "proofUrl": col.proof_url,
         "voucherAmountCents": col.voucher_amount_cents,
+        "collectionType": col.collection_type,
         "createdAt": col.created_at,
         "updatedAt": col.updated_at,
     }
