@@ -16,6 +16,7 @@ import { DRIVER_EMAIL, DRIVER_PASSWORD, loginAs } from './helpers'
 
 test.describe('Driver dashboard', () => {
   test.beforeEach(async ({ page }) => {
+    test.skip(!DRIVER_EMAIL || !DRIVER_PASSWORD, 'Skipped: driver credentials not set')
     await loginAs(page, DRIVER_EMAIL, DRIVER_PASSWORD)
     // Driver users are redirected to /driver after login
     await page.goto('/driver')
