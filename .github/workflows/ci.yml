@@ -72,6 +72,11 @@ jobs:
               setupFiles: ['./vitest.ci.setup.ts'],
               reporters: ['default', 'junit'],
               outputFile: { junit: '../frontend-junit.xml' },
+              exclude: [
+                '**/node_modules/**',
+                '**/tests/**',
+                '**/*.spec.ts',
+              ],
             },
           })
           EOF
