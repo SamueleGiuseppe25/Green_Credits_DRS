@@ -89,6 +89,56 @@ jobs:
           name: frontend-junit
           path: frontend-junit.xml
 
+  playwright:
+    name: Playwright E2E Tests
+    runs-on: ubuntu-latest
+    # Run only on pushes to main (not on PRs) to avoid hitting the live Vercel
+    # URL from fork PRs that won't have access to the required Secrets.
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: [ frontend ]
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright browsers (Chromium + Firefox only)
+        run: npx playwright install --with-deps chromium firefox
+
+      - name: Run Playwright tests (CI-safe only)
+        run: npx playwright test --project=chromium
+        env:
+          CI: 'true'
+          BASE_URL: 'https://green-credits-drs.vercel.app'
+          TEST_ADMIN_EMAIL: ${{ secrets.TEST_ADMIN_EMAIL }}
+          TEST_ADMIN_PASSWORD: ${{ secrets.TEST_ADMIN_PASSWORD }}
+          TEST_USER_EMAIL: ${{ secrets.TEST_USER_EMAIL }}
+          TEST_USER_PASSWORD: ${{ secrets.TEST_USER_PASSWORD }}
+
+      - name: Upload Playwright HTML report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: frontend/playwright-report/
+          retention-days: 14
+
+      - name: Upload Playwright JUnit report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-junit
+          path: playwright-junit.xml
+
   sonarcloud:
     name: SonarCloud Scan
     runs-on: ubuntu-latest

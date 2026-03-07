@@ -61,6 +61,11 @@ docker/*.env
 backend/uploads/*
 !backend/uploads/.gitkeep
 
+# ---- Playwright ----
+frontend/playwright-report/
+frontend/test-results/
+playwright-junit.xml
+
 
 
 nul
