@@ -1,4 +1,11 @@
 import { defineConfig, devices } from '@playwright/test'
+import dotenv from 'dotenv'
+import { fileURLToPath } from 'url'
+
+// Load .env.test when running locally.
+// In CI the same variables come from GitHub Secrets and are already in process.env,
+// so dotenv will not override them.
+dotenv.config({ path: fileURLToPath(new URL('.env.test', import.meta.url)) })
 
 /**
  * GreenCredits Playwright E2E configuration.
