@@ -69,8 +69,7 @@ cd frontend
 npx playwright test --project=chromium
 ```
 
-By default Playwright runs against `https://green-credits-drs.vercel.app`. Override with `BASE_URL=<url>`.
-Tests that mutate production data are tagged `@local-only` and automatically skipped in CI.
+By default Playwright runs against `https://green-credits-drs.vercel.app`. Override with `BASE_URL=<url>`.Tests that mutate production data are tagged `@local-only` and automatically skipped in CI.
 
 ---
 
